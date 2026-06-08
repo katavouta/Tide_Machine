@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script type="text/javascript">
+        /* Simulation of Kelvin's Tide Processing Machine
+           Modified from Bill Casselman's java programme at
+           http://www.ams.org/samplings/feature-column/fcarc-tidesiii3
+        */
+
+        let time = 0; // time in hours
+        let framesPerDay = 24*6;
+        let frame = 0;
+        let phaseName=["M2","S2","N2","K1","O1","P1","K2","M4", "M6"];
+        // Doodson numbers: 31, 36, 28, 17, 10, 15, 38,  48, 55
+        let site_names = ["Liverpool, UK", "Southampton, UK", "User defined"];
+
+        let coefs = [
+            [3.038, 0.978, 0.580, 0.123, 0.11500, 0.04600, 0.28400, 0.23700, 0.05500], // m
+            [1.36700, 0.41500, 0.26700, 0.09000, 0.02800, 0.03100, 0.11500, 0.25200, 0.19100], // m
+            [2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], // m
+        ];
+        let doodson = [
+            [31, 36, 28, 17, 10, 15, 38, 48, 55],
+        ]
+
+        let period = [12.42, 12.00, 12.66, 23.93, 25.82, 24.07, 11.97, 6.21, 4.14]; // Period in hours
+        let scales = [0.7, 1, 1]; // amplitude scale factor station. Length must be number of stations
+        let globalScale = 18;
+        let currentLocation = 0;
+
+        let nPhases = 9;
+        let phases=[];
+        let pulleyOffset = [];
+
+        let nSavedValues = 300;
+        let savedStart = 0;
+        let savedValues =[];
+        let isDrawing=false;
+
+        let pulleyRadius = 18;
+        let ropeThickness = 2;
+        let verticalOffset = 230;
+
+        window.onload = function()
+        {
+            let canvas = document.getElementById("myCanvas");
+            let c = canvas.getContext("2d");
+            c.font="12px sans-serif";
+            SetLocation();
+            SetSpeed(24*6);
+        }
+
+        function SetSpeed()
+        {
+            framesPerDay = parseInt(document.getElementById("speedselect").value);
+            savedValues=[];
+            if (!isDrawing)
+                DrawFrame();
+        }
+        function SetLocation()
+        {
+            currentLocation = parseInt(document.getElementById("locationselect").value);
+            cScale = globalScale*scales[currentLocation];
+            Reset();
+        }
+        function RunPause()
+        {
+            if (isDrawing)
+            {
+                StopDrawing();
+            }
+            else
+            {
+                StartDrawing();
+            }
+        }
+
+        function Step()
+        {
+            if (!isDrawing)
+            {
+                DrawFrame();
+            }
+        }
+
+        function Reset()
+        {
+            StopDrawing();
+            time = 0;
+            frame = 0;
+            savedValues=[];
+            DrawFrame();
+            time = 0;
+            frame = 0;
+            savedValues=[];
+        }
+
+        function StartDrawing()
+        {
+
+            document.getElementById("runpausebutton").innerHTML="Pause";
+            document.getElementById("stepbutton").disabled=true;
+            isDrawing=true;
+            DrawFrame();
+        }
+
+        function StopDrawing()
+        {
+            isDrawing=false;
+            document.getElementById("runpausebutton").innerHTML="Run";
+            document.getElementById("stepbutton").disabled=false;
+        }
+
+        function GeneratePhases(t)
+        {
+            for (let i=0; i<nPhases; i++)
+            {
+                phases[i] = ((i%2)*2-1)*t*2.0*Math.PI/period[i];
+            }
+        }
+
+
+
+        function RopeMovement(n)
+        {
+            let r = 0;
+            for (let i=0; i<n; i++)
+            {
+                r += ((i%2)*-2+1)*cScale*coefs[currentLocation][i]*Math.sin(phases[i])*2;
+            }
+            return r;
+        }
+
+        function DrawCrank(c, x, y, rad, angle, pulleyAngle)
+        {
+            c.beginPath();
+            c.arc(x, y, rad, 0, 2*Math.PI);
+            c.lineWidth=0.5;
+            c.strokeStyle = '#808080';
+            c.stroke();
+
+            let xb = x+Math.cos(angle)*rad;
+            let yb = y+Math.sin(angle)*rad;
+            c.moveTo(x, y);
+            c.lineTo(xb, yb);
+            c.stroke();
+
+            c.beginPath();
+            c.arc(xb, yb, 1.5, 0, 2*Math.PI);
+            c.fillStyle = '#808080';
+            c.fill();
+
+            c.strokeStyle = '#000080';
+            c.strokeRect(x-rad-2, yb-2, 2*rad+4, 4);
+
+            c.strokeStyle = '#000000';
+
+            let pulleyOffset = 30;
+            c.lineWidth=1.5;
+            c.beginPath();
+            c.moveTo(x, yb-2);
+            c.lineTo(x, yb-2-pulleyOffset);
+            c.stroke();
+
+            DrawPulley(c, x, yb-2-pulleyOffset, pulleyAngle);
+            return yb-2-pulleyOffset - y;
+        }
+
+        function DrawPulley(c, x, y, angle)
+        {
+            let holeDist = pulleyRadius*0.6;
+            let holeRadius = pulleyRadius*0.15;
+
+            let canvas = document.getElementById("myCanvas");
+
+
+            c.beginPath();
+            c.arc(x, y, pulleyRadius, 0, 2*Math.PI);
+            for (let i=0; i<6; i++)
+            {
+                let langle = angle + 2.0*Math.PI*i/6;
+                c.moveTo(x+Math.sin(langle)*holeDist, y+Math.cos(langle)*holeDist);
+                c.arc(x+Math.sin(langle)*holeDist, y+Math.cos(langle)*holeDist, holeRadius,  0, 2*Math.PI,true);
+            }
+            c.fillStyle = '#c0b040';
+            c.fill();
+
+            c.beginPath();
+            c.arc(x, y, pulleyRadius, 0, 2*Math.PI);
+            c.lineWidth=0.5;
+            c.strokeStyle = '#000000';
+            c.stroke();
+
+            c.beginPath();
+            c.arc(x, y, 2, 0, 2*Math.PI);
+            c.fillStyle = '#000000';
+            c.fill();
+        }
+
+        function DrawRope(c, x, y)
+        {
+            c.beginPath();
+            c.lineWidth=ropeThickness;
+            c.strokeStyle = '#a05000';
+            c.fillStyle = '#a05000';
+            for (let i=0; i<nPhases; i++)
+            {
+                c.moveTo(x+(i-0.5)*(2*pulleyRadius+ropeThickness), y+verticalOffset*((i+1)%2)+pulleyOffset[i]);
+                c.lineTo(x+(i-0.5)*(2*pulleyRadius+ropeThickness), y+verticalOffset*(i%2)+pulleyOffset[i+1]);
+                c.arc(x+i*(2*pulleyRadius+ropeThickness), y+verticalOffset*(i%2)+pulleyOffset[i+1],
+                    pulleyRadius+0.5*ropeThickness, Math.PI, 0,i%2);
+            }
+            c.stroke();
+
+            c.beginPath();
+            c.arc(x-pulleyRadius-0.5*ropeThickness, y+verticalOffset+pulleyOffset[0], 3, 0, Math.PI*2.0);
+            c.fill();
+
+            let xp = x+(nPhases-0.5)*(2*pulleyRadius+ropeThickness);
+            let yp = y+0.5*verticalOffset+RopeMovement(nPhases);
+            c.beginPath();
+            c.moveTo(xp, y+verticalOffset*((nPhases+1)%2)+pulleyOffset[nPhases]);
+            c.lineTo(xp, yp+350);
+            c.stroke();
+
+            c.beginPath();
+            c.arc(xp, yp, 3, 0, Math.PI*2.0);
+            c.fill();
+
+            c.strokeStyle = '#808080'; // Add pen
+            c.lineWidth = 1;
+            c.beginPath();
+            c.moveTo(xp, yp+350);
+            c.lineTo(xp+10, yp+350);
+            c.stroke();
+
+            c.beginPath();
+            c.arc(xp, yp+350, 3, 0, Math.PI*2.0);
+            c.fill();
+
+
+            for (let i=0; i<nPhases; i++)
+            {
+                let xp = x+(i-0.5)*(2*pulleyRadius+ropeThickness);
+                let yp = y+0.5*verticalOffset-30+((i%2)*2-1)*RopeMovement(i);
+                c.beginPath();
+                c.arc(xp, yp, 2, 0, Math.PI*2.0);
+                c.fill();
+            }
+        }
+
+        function DrawPlot(c, x, y)
+        {
+            let xp = Math.ceil(x+(nPhases-0.5)*(2*pulleyRadius+ropeThickness));
+            let yp = Math.ceil(y+0.5*verticalOffset);
+
+
+            c.fillStyle='rgb(255,255,255)';
+            c.fillRect(xp-5,yp-150,nSavedValues+5,300);
+
+            c.lineWidth=1;
+            c.strokeStyle='#e0e0e0'; // y=const lines. 1m apart
+            c.beginPath();
+            for (let i=-Math.floor(75/cScale); i<=Math.floor(75/cScale); i++)
+            {
+                if (i!==0) // horizontal lines
+                {
+                    c.moveTo(xp-4.5, yp+0.5+2*cScale*i);
+                    c.lineTo(xp-nSavedValues, yp+0.5+2*cScale*i);  // incl. factor of 2, yet 1m apart?
+                }
+            }
+            c.stroke();
+            c.strokeStyle='#a0a0e0'; // x-axis
+            c.beginPath();
+            c.moveTo(xp-4.5, yp+0.5);
+            c.lineTo(xp-nSavedValues, yp+0.5);
+
+            c.stroke();
+
+            c.strokeStyle='#a0a0e0'; // vertical lines (daily)
+            c.beginPath();
+            for (let i=-5+(frame+5)%framesPerDay; i<nSavedValues; i+=framesPerDay)
+            {
+                c.moveTo(xp-i+0.5,yp+150);
+                c.lineTo(xp-i+0.5,yp-150);
+            }
+            c.stroke();
+
+            c.beginPath();
+            c.strokeStyle = '#4000a0';  // pen colour
+            c.lineWidth = 1.5;
+            for (let i=0; i<nSavedValues; i++)
+            {
+                let ind = (savedStart+i+1)%nSavedValues;
+                c.lineTo(xp-i,yp+savedValues[ind]);
+            }
+            c.stroke();
+        }
+
+        function DrawFrame()
+        {
+            let canvas = document.getElementById("myCanvas");
+            let c = canvas.getContext("2d");
+
+            let xofs = 50, yofs = 100;
+
+            c.fillStyle='#fafafc';
+            c.fillRect(0,0,canvas.width,canvas.height);
+
+            GeneratePhases(time);
+
+            let pulleyAngle = 0;
+            let lastRopePos = 0;
+            pulleyOffset[0]=0;
+            for (let i=0; i<nPhases; i++)
+            {
+                ropePos = RopeMovement(i+1);
+
+                pulleyAngle = -0.5*(lastRopePos+ropePos)/(pulleyRadius+0.5*ropeThickness);
+
+                let xp = xofs+i*(2*pulleyRadius+ropeThickness);
+                pulleyOffset[i+1] =
+                    DrawCrank(c, xp, yofs+verticalOffset*(i%2),
+                        coefs[currentLocation][i]*cScale,
+                        phases[i], pulleyAngle*((i%2)*-2+1));
+                lastRopePos = ropePos;
+            }
+
+            for (let i=0; i<nPhases; i++)
+            {
+                let xp = xofs+i*(2*pulleyRadius+ropeThickness);
+                let tw= c.measureText(phaseName[i]).width;
+                c.fillText(phaseName[i],xp-0.5*tw, yofs+verticalOffset+40);
+            }
+
+
+            savedValues[savedStart] = RopeMovement(nPhases);
+            savedStart--;
+            if (savedStart<0) savedStart = nSavedValues-1;
+
+            //DrawPlot(c, xofs+10, yofs);
+            DrawPlot(c, 100-xofs, yofs+350);
+
+
+            DrawRope(c, xofs, yofs);
+
+            time += 24/framesPerDay;
+            frame++;
+            if (isDrawing) setTimeout("DrawFrame()",20);
+        }
+
+        function updateUserCoefs()
+        {
+            // Get the input value
+            let input = document.getElementById("userCoefsInput").value;
+
+            // Parse the input into an array of floating-point numbers
+            let userCoefs = input.split(',').map(Number);
+
+            // Validate the input (ensure it matches the number of phases)
+            if (userCoefs.length !== phaseName.length || userCoefs.some(isNaN)) {
+                alert(`Please enter exactly ${phaseName.length} valid numbers, separated by commas.`);
+                return;
+            }
+
+            // Update the last row of the coefs array
+            coefs[2] = userCoefs;
+
+            // Update the table to reflect the new values
+            let tableDiv = document.getElementById("myDynamicConstituentTable");
+            tableDiv.innerHTML = ""; // Clear the existing table
+            addTable(); // Recreate the table with updated values
+
+            alert("User-defined coefficients updated successfully!");
+        }
+
+    </script>
+
+    <title>Kelvin Tidal Machine</title>
+
+</head>
+<body>
+
+
+<!--Main content-->
+<div class="container-fluid gutters">
+    <div class="row" style="border-left:1px solid #ccc;border-right:1px solid #ccc;border-bottom:1px solid #ccc ">
+        <div class="col-md-12">
+
+            <h2>Simulation of Kelvin&#39;s Tide Predicting Machine</h2>
+
+            <p>The functioning of Kelvin&#39;s tide predicting mechanism, and the way in which the various constituents
+                contribute to the tide. In the simulated mechanism nine constituents are summed:
+                M<sub>2</sub>, S<sub>2</sub>, N<sub>2</sub>, K<sub>1</sub>, O<sub>1</sub>, P<sub>1</sub>, K<sub>2</sub>,
+                M<sub>4</sub> and M<sub>6</sub>. The initial phases are all set to zero (upper pulleys) or
+                180<sup>o</sup> (lower). The amplitudes can be selected from the pull-down menu to select a given port.</p>
+
+            <div style="width:625px; margin: 0 auto;"><canvas height="700" id="myCanvas" width="620"> </canvas>
+
+                <div><button id="runpausebutton" onclick="RunPause();" style="width: 70px">Run</button>
+                    <button id="stepbutton" onclick="Step();" style="width: 70px">Step</button>
+                    <button onclick="Reset();" style="width: 70px">Reset</button>
+                    <select id="locationselect" onchange="SetLocation()">
+                        <option value="0">Liverpool, UK</option>
+                        <option value="1">Southampton, UK</option>
+                        <option value="2">User defined</option>
+                    </select>
+                    <select id="speedselect" onchange="SetSpeed()">
+                        <option value="144">Slow</option>
+                        <option value="24">Fast</option>
+                    </select>
+                </div>
+
+            </div>
+
+
+            <p>Click to activate. Horizontal lines on the graph are spaced 1m apart. The vertical bars mark off 24-hour days.</p>
+
+            <p>In this simulation the constituents all start out in phase; the typical aspect of the tidal record for
+                the port does not appear until after a simulated week or two.
+            The following constituent amplitudes (m) were used in the simulation:
+            </p>
+
+            <div id="myDynamicConstituentTable"></div>
+            <script type="text/javascript">
+                function addTable() {
+                    let myTableDiv = document.getElementById("myDynamicConstituentTable");
+
+                    let table = document.createElement('TABLE');
+                    table.border = '0';
+
+                    let tableBody = document.createElement('TBODY');
+                    table.appendChild(tableBody);
+
+                    let tr = document.createElement('TR');
+                    tableBody.appendChild(tr);
+                    let td = document.createElement('TD');
+                    td.width = '150';
+                    td.appendChild(document.createTextNode(""));
+                    tr.appendChild(td);
+
+                    for (let jconstit = 0; jconstit < phaseName.length; jconstit++) {
+                        let td = document.createElement('TD');
+                        td.width = '50';
+                        td.appendChild(document.createTextNode(phaseName[jconstit]));
+                        tr.appendChild(td);
+                    }
+
+                    for (let istation = 0; istation < coefs.length; istation++) {
+                        let tr = document.createElement('TR');
+                        tableBody.appendChild(tr);
+
+                        let td = document.createElement('TD');
+                        td.width = '150';
+                        td.appendChild(document.createTextNode(site_names[istation] ));
+                        tr.appendChild(td);
+
+                        for (let jconstit = 0; jconstit < phaseName.length; jconstit++) {
+                            let td = document.createElement('TD');
+                            td.width = '50';
+                            td.appendChild(document.createTextNode(coefs[istation][jconstit] ));
+                            tr.appendChild(td);
+                        }
+                    }
+
+
+                    table.style.fontFamily = "Courier";
+                    table.style.fontSize = "smaller";
+                    myTableDiv.appendChild(table);
+                }
+                addTable()
+            </script>
+
+
+            <!-- Place the user defined input box and button -->
+            <div>
+                <label for="userCoefsInput">Enter user defined amplitudes (comma-separated):</label>
+                <input type="text" id="userCoefsInput" placeholder="e.g., 2.0, 1.5, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0">
+                <button onclick="updateUserCoefs()">Update Table</button>
+            </div>
+
+            <p>ADD Words about origins of constituents (semi-diurnal / diurnal / shallow-water)</p>
+            <p>ADD Words highlighting key features of Liverpool (large semi-diurnal), Southampton (double highs)</p>
+
+            Adapted from a <a href="https://www.ams.org/publicoutreach/feature-column/fcarc-tidesiii3">Feature column
+            from the American Mathematical Society</a> on ocean tides.
+            Java originally contributed by Bill Casselman of the University of British Columbia.
+            Adaptions: modified the presentation (units, constituents, locations, direction of time) and user defined input (JPolton, National Oceanography Centre).
+
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
+<!--/Footer-->
