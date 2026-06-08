@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kelvin Tidal Machine</title>
 
     <script type="text/javascript">
         /* Simulation of Kelvin's Tide Processing Machine
@@ -15,25 +15,29 @@
         let time = 0; // time in hours
         let framesPerDay = 24*6;
         let frame = 0;
-        let phaseName=["M2","S2","K1","M4"];
-        // Doodson numbers: 31, 36, 17,  48
+        
+        // Filtered down to exactly 5 constituents: M2, S2, K1, O1, M4
+        let phaseName=["M2", "S2", "K1", "O1", "M4"];
         let site_names = ["Liverpool, UK", "Southampton, UK", "User defined"];
 
+        // Coefs arrays sliced to match only the 5 selected constituents
         let coefs = [
-            [3.038, 0.978, 0.123, 0.23700], // m
-            [1.36700, 0.41500, 0.09000, 0.25200], // m
-            [2.0, 1.0, 0.0, 0.0], // m
+            [3.038, 0.978, 0.123, 0.115, 0.237], // Liverpool
+            [1.367, 0.415, 0.090, 0.028, 0.252], // Southampton
+            [2.0, 1.0, 0.0, 0.0, 0.0],           // User defined default
         ];
+        
         let doodson = [
-            [31, 36, 17, 48],
-        ]
+            [31, 36, 17, 10, 48],
+        ];
 
-        let period = [12.42, 12.00, 23.93, 6.21]; // Period in hours
-        let scales = [0.7, 1, 1]; // amplitude scale factor station. Length must be number of stations
+        // Periods updated to align strictly with M2, S2, K1, O1, M4
+        let period = [12.42, 12.00, 23.93, 25.82, 6.21]; 
+        let scales = [0.7, 1, 1]; 
         let globalScale = 18;
         let currentLocation = 0;
 
-        let nPhases = 9;
+        let nPhases = 5; // Updated from 9 to 5
         let phases=[];
         let pulleyOffset = [];
 
@@ -102,7 +106,6 @@
 
         function StartDrawing()
         {
-
             document.getElementById("runpausebutton").innerHTML="Pause";
             document.getElementById("stepbutton").disabled=true;
             isDrawing=true;
@@ -123,8 +126,6 @@
                 phases[i] = ((i%2)*2-1)*t*2.0*Math.PI/period[i];
             }
         }
-
-
 
         function RopeMovement(n)
         {
@@ -175,9 +176,6 @@
         {
             let holeDist = pulleyRadius*0.6;
             let holeRadius = pulleyRadius*0.15;
-
-            let canvas = document.getElementById("myCanvas");
-
 
             c.beginPath();
             c.arc(x, y, pulleyRadius, 0, 2*Math.PI);
@@ -232,7 +230,7 @@
             c.arc(xp, yp, 3, 0, Math.PI*2.0);
             c.fill();
 
-            c.strokeStyle = '#808080'; // Add pen
+            c.strokeStyle = '#808080'; 
             c.lineWidth = 1;
             c.beginPath();
             c.moveTo(xp, yp+350);
@@ -242,7 +240,6 @@
             c.beginPath();
             c.arc(xp, yp+350, 3, 0, Math.PI*2.0);
             c.fill();
-
 
             for (let i=0; i<nPhases; i++)
             {
@@ -259,30 +256,28 @@
             let xp = Math.ceil(x+(nPhases-0.5)*(2*pulleyRadius+ropeThickness));
             let yp = Math.ceil(y+0.5*verticalOffset);
 
-
             c.fillStyle='rgb(255,255,255)';
             c.fillRect(xp-5,yp-150,nSavedValues+5,300);
 
             c.lineWidth=1;
-            c.strokeStyle='#e0e0e0'; // y=const lines. 1m apart
+            c.strokeStyle='#e0e0e0'; 
             c.beginPath();
             for (let i=-Math.floor(75/cScale); i<=Math.floor(75/cScale); i++)
             {
-                if (i!==0) // horizontal lines
+                if (i!==0) 
                 {
                     c.moveTo(xp-4.5, yp+0.5+2*cScale*i);
-                    c.lineTo(xp-nSavedValues, yp+0.5+2*cScale*i);  // incl. factor of 2, yet 1m apart?
+                    c.lineTo(xp-nSavedValues, yp+0.5+2*cScale*i);  
                 }
             }
             c.stroke();
-            c.strokeStyle='#a0a0e0'; // x-axis
+            c.strokeStyle='#a0a0e0'; 
             c.beginPath();
             c.moveTo(xp-4.5, yp+0.5);
             c.lineTo(xp-nSavedValues, yp+0.5);
-
             c.stroke();
 
-            c.strokeStyle='#a0a0e0'; // vertical lines (daily)
+            c.strokeStyle='#a0a0e0'; 
             c.beginPath();
             for (let i=-5+(frame+5)%framesPerDay; i<nSavedValues; i+=framesPerDay)
             {
@@ -292,7 +287,7 @@
             c.stroke();
 
             c.beginPath();
-            c.strokeStyle = '#4000a0';  // pen colour
+            c.strokeStyle = '#4000a0';  
             c.lineWidth = 1.5;
             for (let i=0; i<nSavedValues; i++)
             {
@@ -338,15 +333,11 @@
                 c.fillText(phaseName[i],xp-0.5*tw, yofs+verticalOffset+40);
             }
 
-
             savedValues[savedStart] = RopeMovement(nPhases);
             savedStart--;
             if (savedStart<0) savedStart = nSavedValues-1;
 
-            //DrawPlot(c, xofs+10, yofs);
             DrawPlot(c, 100-xofs, yofs+350);
-
-
             DrawRope(c, xofs, yofs);
 
             time += 24/framesPerDay;
@@ -356,48 +347,42 @@
 
         function updateUserCoefs()
         {
-            // Get the input value
             let input = document.getElementById("userCoefsInput").value;
-
-            // Parse the input into an array of floating-point numbers
             let userCoefs = input.split(',').map(Number);
 
-            // Validate the input (ensure it matches the number of phases)
             if (userCoefs.length !== phaseName.length || userCoefs.some(isNaN)) {
                 alert(`Please enter exactly ${phaseName.length} valid numbers, separated by commas.`);
                 return;
             }
 
-            // Update the last row of the coefs array
             coefs[2] = userCoefs;
 
-            // Update the table to reflect the new values
             let tableDiv = document.getElementById("myDynamicConstituentTable");
-            tableDiv.innerHTML = ""; // Clear the existing table
-            addTable(); // Recreate the table with updated values
+            tableDiv.innerHTML = ""; 
+            addTable(); 
 
             alert("User-defined coefficients updated successfully!");
         }
-
     </script>
-
-    <title>Kelvin Tidal Machine</title>
-
 </head>
 <body>
 
-
-<!--Main content-->
 <div class="container-fluid gutters">
     <div class="row" style="border-left:1px solid #ccc;border-right:1px solid #ccc;border-bottom:1px solid #ccc ">
         <div class="col-md-12">
 
             <h2>Simulation of Kelvin&#39;s Tide Predicting Machine</h2>
 
+            <p>The functioning of Kelvin&#39;s tide predicting mechanism, and the way in which the various constituents
+                contribute to the tide. In the simulated mechanism five key constituents are summed:
+                M<sub>2</sub>, S<sub>2</sub>, K<sub>1</sub>, O<sub>1</sub>, and M<sub>4</sub>. 
+                The initial phases are all set to zero (upper pulleys) or 180<sup>o</sup> (lower). 
+                The amplitudes can be selected from the pull-down menu to select a given port.</p>
 
             <div style="width:625px; margin: 0 auto;"><canvas height="700" id="myCanvas" width="620"> </canvas>
 
-                <div><button id="runpausebutton" onclick="RunPause();" style="width: 70px">Run</button>
+                <div>
+                    <button id="runpausebutton" onclick="RunPause();" style="width: 70px">Run</button>
                     <button id="stepbutton" onclick="Step();" style="width: 70px">Step</button>
                     <button onclick="Reset();" style="width: 70px">Reset</button>
                     <select id="locationselect" onchange="SetLocation()">
@@ -410,13 +395,9 @@
                         <option value="24">Fast</option>
                     </select>
                 </div>
-
             </div>
 
-
-            <p>
-            The following constituent amplitudes (m) were used in the simulation:
-            </p>
+            <p>Click to activate. Horizontal lines on the graph are spaced 1m apart. The vertical bars mark off 24-hour days.</p>
 
             <div id="myDynamicConstituentTable"></div>
             <script type="text/javascript">
@@ -460,7 +441,6 @@
                         }
                     }
 
-
                     table.style.fontFamily = "Courier";
                     table.style.fontSize = "smaller";
                     myTableDiv.appendChild(table);
@@ -468,18 +448,28 @@
                 addTable()
             </script>
 
-
-            <!-- Place the user defined input box and button -->
-            <div>
-                <label for="userCoefsInput">Enter user defined amplitudes (comma-separated):</label>
-                <input type="text" id="userCoefsInput" placeholder="e.g., 2.0, 1.5, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0">
+            <div style="margin-top: 15px; margin-bottom: 15px;">
+                <label for="userCoefsInput">Enter user defined amplitudes (5 comma-separated values):</label><br>
+                <input type="text" id="userCoefsInput" placeholder="e.g., 2.0, 1.0, 0.5, 0.2, 0.1" style="width: 250px;">
                 <button onclick="updateUserCoefs()">Update Table</button>
             </div>
 
+            <h3>Origins of the Selected Constituents</h3>
+            <ul>
+                <li><strong>M<sub>2</sub> (Principal lunar semi-diurnal):</strong> Typically the dominant constituent forced by the rotation of the Earth relative to the Moon twice a day.</li>
+                <li><strong>S<sub>2</sub> (Principal solar semi-diurnal):</strong> The main solar component, pulsing every 12 hours, interacting with M<sub>2</sub> to cause the spring-neap cycle.</li>
+                <li><strong>K<sub>1</sub> (Lunisolar diurnal):</strong> A major diurnal component accounting for declination variations of the Moon and Sun.</li>
+                <li><strong>O<sub>1</sub> (Principal lunar diurnal):</strong> A key diurnal constituent representing the changing north-south tilt of the Moon's orbit.</li>
+                <li><strong>M<sub>4</sub> (Shallow water overtide):</strong> Generated locally by non-linear distortion of the main lunar wave in shallow shelf seas.</li>
+            </ul>
+
+            <p><strong>Regional Features:</strong> Liverpool exhibits a large semi-diurnal tidal range dominated heavily by M<sub>2</sub>. Southampton is uniquely characterized by distorted shallow-water effects, giving rise to distinct double-high waters where shallow overtides like M<sub>4</sub> interact prominently with the semi-diurnals.</p>
+
+            <hr>
             Adapted from a <a href="https://www.ams.org/publicoutreach/feature-column/fcarc-tidesiii3">Feature column
             from the American Mathematical Society</a> on ocean tides.
             Java originally contributed by Bill Casselman of the University of British Columbia.
-            Adaptions: modified the presentation (units, constituents, locations, direction of time) and user defined input (JPolton, National Oceanography Centre).
+            Adaptations: modified the presentation (units, constituents, locations, direction of time) and user defined input (JPolton, National Oceanography Centre).
 
         </div>
     </div>
@@ -487,4 +477,3 @@
 
 </body>
 </html>
-<!--/Footer-->
