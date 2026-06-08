@@ -160,6 +160,9 @@
         let verticalOffset = 260;   
         let machineSpacing = 56;    
 
+        // Base date configuration: June 12, 2026
+        const startDate = new Date(2026, 5, 12, 0, 0, 0); 
+
         window.onload = function()
         {
             SetLocation();
@@ -397,15 +400,43 @@
             c.lineTo(xp+nSavedValues, yp+0.5);
             c.stroke();
 
-            c.strokeStyle = '#e2e8f0'; 
+            // Set grid grouping rules depending on output running speeds
+            // "Fast Output" shifts values 6 times faster, so space it out to 15-day bars
+            let daysPerGridLine = (framesPerDay === 24) ? 15 : 1; 
+            let pixelSpacing = framesPerDay * daysPerGridLine;
+
+            // Offset alignment for historical timeline drawing
+            let firstGridOffset = (frame) % pixelSpacing;
+
             c.lineWidth = 1;
-            c.beginPath();
-            for (let i=nSavedValues - ((frame)%framesPerDay); i>0; i-=framesPerDay)
+            c.font = "10px ui-monospace, monospace";
+            
+            for (let i = nSavedValues - firstGridOffset; i > 0; i -= pixelSpacing)
             {
+                // Draw timeline grid bars
+                c.strokeStyle = '#e2e8f0';
+                c.beginPath();
                 c.moveTo(xp+i+0.5, yp+150);
                 c.lineTo(xp+i+0.5, yp-150);
+                c.stroke();
+
+                // Compute exact timeline dates relative to global frame counts
+                let associatedFrame = frame - (nSavedValues - i);
+                let daysElapsed = associatedFrame / framesPerDay;
+                
+                let targetDate = new Date(startDate.getTime());
+                targetDate.setDate(startDate.getDate() + Math.floor(daysElapsed));
+
+                // Clean display label strings (e.g., "12 Jun" or "27 Jun")
+                let dayStr = targetDate.getDate();
+                let monthStr = targetDate.toLocaleString('en-US', { month: 'short' });
+                let labelText = `${dayStr} ${monthStr}`;
+
+                // Render floating dates at the base of the wave display
+                c.fillStyle = '#94a3b8';
+                let textWidth = c.measureText(labelText).width;
+                c.fillText(labelText, xp + i - (textWidth / 2), yp + 145);
             }
-            c.stroke();
 
             c.beginPath();
             c.strokeStyle = '#0369a1';  
@@ -521,7 +552,7 @@
         </div>
     </div>
 
-    <p>Horizontal lines on the coordinate chart are spaced 1m apart. The light vertical bars mark off individual 24-hour days. <em>Tip: Click directly into any yellow cell in the table below to adjust custom amplitude values in real time!</em></p>
+    <p>Horizontal lines on the coordinate chart are spaced 1m apart. The timeline tracks simulated output starting from <strong>12 June 2026</strong>. <em>Tip: Click directly into any yellow cell in the table below to adjust custom amplitude values in real time!</em></p>
 
     <div id="myDynamicConstituentTable"></div>
     
