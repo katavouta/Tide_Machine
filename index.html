@@ -38,6 +38,23 @@
             border: 1px solid #e2e8f0;
             box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
         }
+        /* Live digital readout overlay */
+        .live-readout {
+            background: #0f172a;
+            color: #38bdf8;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 16px;
+            padding: 12px 24px;
+            border-radius: 6px;
+            margin: 10px auto 20px auto;
+            display: inline-block;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid #1e293b;
+        }
+        .live-readout span {
+            color: #ffffff;
+            font-weight: bold;
+        }
         .controls {
             margin-top: 20px;
             display: flex;
@@ -356,6 +373,7 @@
             c.strokeStyle = '#c2410c';
             c.stroke();
 
+            // High-visibility illuminated stylus pen marker
             c.shadowColor = 'rgba(2, 132, 199, 0.4)';
             c.shadowBlur = 6;
             c.beginPath();
@@ -400,12 +418,8 @@
             c.lineTo(xp+nSavedValues, yp+0.5);
             c.stroke();
 
-            // Set grid grouping rules depending on output running speeds
-            // "Fast Output" shifts values 6 times faster, so space it out to 15-day bars
             let daysPerGridLine = (framesPerDay === 24) ? 15 : 1; 
             let pixelSpacing = framesPerDay * daysPerGridLine;
-
-            // Offset alignment for historical timeline drawing
             let firstGridOffset = (frame) % pixelSpacing;
 
             c.lineWidth = 1;
@@ -413,31 +427,28 @@
             
             for (let i = nSavedValues - firstGridOffset; i > 0; i -= pixelSpacing)
             {
-                // Draw timeline grid bars
                 c.strokeStyle = '#e2e8f0';
                 c.beginPath();
                 c.moveTo(xp+i+0.5, yp+150);
                 c.lineTo(xp+i+0.5, yp-150);
                 c.stroke();
 
-                // Compute exact timeline dates relative to global frame counts
                 let associatedFrame = frame - (nSavedValues - i);
                 let daysElapsed = associatedFrame / framesPerDay;
                 
                 let targetDate = new Date(startDate.getTime());
                 targetDate.setDate(startDate.getDate() + Math.floor(daysElapsed));
 
-                // Clean display label strings (e.g., "12 Jun" or "27 Jun")
                 let dayStr = targetDate.getDate();
                 let monthStr = targetDate.toLocaleString('en-US', { month: 'short' });
                 let labelText = `${dayStr} ${monthStr}`;
 
-                // Render floating dates at the base of the wave display
                 c.fillStyle = '#94a3b8';
                 let textWidth = c.measureText(labelText).width;
                 c.fillText(labelText, xp + i - (textWidth / 2), yp + 145);
             }
 
+            // Draw the continuous wave profile
             c.beginPath();
             c.strokeStyle = '#0369a1';  
             c.lineWidth = 2.5;
@@ -450,6 +461,42 @@
                 }
             }
             c.stroke();
+
+            // --- TRACKING BALL & DIGITAL READOUT LOGIC ---
+            // The pen operates right at the left edge of the chart matrix (index 0)
+            let currentOffsetIndex = (savedStart + 1) % nSavedValues;
+            let currentWaveY = savedValues[currentOffsetIndex];
+
+            if (currentWaveY !== undefined) {
+                // 1. Draw a prominent tracking ball right on top of the wave at the pen point
+                c.shadowColor = 'rgba(220, 38, 38, 0.5)';
+                c.shadowBlur = 8;
+                c.beginPath();
+                c.arc(xp, yp + currentWaveY, 7, 0, Math.PI * 2);
+                c.fillStyle = '#dc2626'; // High-contrast crimson red tracking ball
+                c.fill();
+                c.lineWidth = 2;
+                c.strokeStyle = '#ffffff';
+                c.stroke();
+                c.shadowBlur = 0; // Clear immediately
+
+                // 2. Compute exact time metadata for this exact spot
+                let totalDaysElapsed = frame / framesPerDay;
+                let activeDate = new Date(startDate.getTime());
+                activeDate.setMinutes(startDate.getMinutes() + Math.floor(totalDaysElapsed * 24 * 60));
+
+                // Format elements for reading display panel
+                let dateString = activeDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                let timeString = activeDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                
+                // Convert pixels back into a true simulated scale height (centered on 0)
+                let actualHeightMeters = (-currentWaveY / (cScale * 2));
+
+                // 3. Push text layout straight into HTML readout elements
+                document.getElementById("liveDate").innerText = dateString;
+                document.getElementById("liveTime").innerText = timeString;
+                document.getElementById("liveHeight").innerText = actualHeightMeters.toFixed(2) + " m";
+            }
         }
 
         function DrawFrame()
@@ -531,6 +578,14 @@
 
     <p class="intro-text">This interactive module simulates a mechanical analog tide computer. Harmonic constituents are mechanically summed via an elegant system of wires and pulleys to draw an automated tidal curve in real time.</p>
 
+    <div style="text-align: center;">
+        <div class="live-readout">
+            📅 Date: <span id="liveDate">12 Jun 2026</span> &nbsp;|&nbsp; 
+            🕒 Time: <span id="liveTime">00:00</span> &nbsp;|&nbsp; 
+            🌊 Predicted Height: <span id="liveHeight">0.00 m</span>
+        </div>
+    </div>
+
     <div class="canvas-container">
         <canvas height="560" id="myCanvas" width="850"></canvas>
 
@@ -552,7 +607,7 @@
         </div>
     </div>
 
-    <p>Horizontal lines on the coordinate chart are spaced 1m apart. The timeline tracks simulated output starting from <strong>12 June 2026</strong>. <em>Tip: Click directly into any yellow cell in the table below to adjust custom amplitude values in real time!</em></p>
+    <p>Horizontal lines on the coordinate chart are spaced 1m apart. The bright crimson tracking ball follows the exact point of current prediction. <em>Tip: Click directly into any yellow cell in the table below to adjust custom amplitude values in real time!</em></p>
 
     <div id="myDynamicConstituentTable"></div>
     
