@@ -38,7 +38,6 @@
             border: 1px solid #e2e8f0;
             box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
         }
-        /* Live digital readout overlay */
         .live-readout {
             background: #0f172a;
             color: #38bdf8;
@@ -177,7 +176,6 @@
         let verticalOffset = 260;   
         let machineSpacing = 56;    
 
-        // Base date configuration: June 12, 2026
         const startDate = new Date(2026, 5, 12, 0, 0, 0); 
 
         window.onload = function()
@@ -373,7 +371,6 @@
             c.strokeStyle = '#c2410c';
             c.stroke();
 
-            // High-visibility illuminated stylus pen marker
             c.shadowColor = 'rgba(2, 132, 199, 0.4)';
             c.shadowBlur = 6;
             c.beginPath();
@@ -398,6 +395,7 @@
             c.lineWidth = 1.5;
             c.strokeRect(xp, yp-150, nSavedValues, 300);
 
+            // Horizontal amplitude grids
             c.lineWidth = 1;
             c.strokeStyle = '#f1f5f9'; 
             c.beginPath();
@@ -418,26 +416,28 @@
             c.lineTo(xp+nSavedValues, yp+0.5);
             c.stroke();
 
+            // FIXED TIMELINE GRID lines (No longer scrolling)
             let daysPerGridLine = (framesPerDay === 24) ? 15 : 1; 
             let pixelSpacing = framesPerDay * daysPerGridLine;
-            let firstGridOffset = (frame) % pixelSpacing;
 
             c.lineWidth = 1;
             c.font = "10px ui-monospace, monospace";
             
-            for (let i = nSavedValues - firstGridOffset; i > 0; i -= pixelSpacing)
+            // Draw static grid markers starting right from the drawing head (xp) moving backward
+            for (let i = 0; i < nSavedValues; i += pixelSpacing)
             {
                 c.strokeStyle = '#e2e8f0';
                 c.beginPath();
-                c.moveTo(xp+i+0.5, yp+150);
-                c.lineTo(xp+i+0.5, yp-150);
+                c.moveTo(xp + i + 0.5, yp + 130);
+                c.lineTo(xp + i + 0.5, yp - 150);
                 c.stroke();
 
-                let associatedFrame = frame - (nSavedValues - i);
-                let daysElapsed = associatedFrame / framesPerDay;
+                // Calculate history labels based on fixed pixel steps away from the current time
+                let daysBehind = i / framesPerDay;
+                let totalDaysElapsed = frame / framesPerDay;
                 
                 let targetDate = new Date(startDate.getTime());
-                targetDate.setDate(startDate.getDate() + Math.floor(daysElapsed));
+                targetDate.setMinutes(startDate.getMinutes() + Math.floor((totalDaysElapsed - daysBehind) * 24 * 60));
 
                 let dayStr = targetDate.getDate();
                 let monthStr = targetDate.toLocaleString('en-US', { month: 'short' });
@@ -448,7 +448,7 @@
                 c.fillText(labelText, xp + i - (textWidth / 2), yp + 145);
             }
 
-            // Draw the continuous wave profile
+            // Draw the generated historical wave trace line
             c.beginPath();
             c.strokeStyle = '#0369a1';  
             c.lineWidth = 2.5;
@@ -462,37 +462,32 @@
             }
             c.stroke();
 
-            // --- TRACKING BALL & DIGITAL READOUT LOGIC ---
-            // The pen operates right at the left edge of the chart matrix (index 0)
+            // --- STATIONARY HIGHLIGHT PIN FOR THE CURRENT MOMENT ---
             let currentOffsetIndex = (savedStart + 1) % nSavedValues;
             let currentWaveY = savedValues[currentOffsetIndex];
 
             if (currentWaveY !== undefined) {
-                // 1. Draw a prominent tracking ball right on top of the wave at the pen point
-                c.shadowColor = 'rgba(220, 38, 38, 0.5)';
+                // Tracking ball locked precisely at the pen generator point (xp)
+                c.shadowColor = 'rgba(220, 38, 38, 0.6)';
                 c.shadowBlur = 8;
                 c.beginPath();
                 c.arc(xp, yp + currentWaveY, 7, 0, Math.PI * 2);
-                c.fillStyle = '#dc2626'; // High-contrast crimson red tracking ball
+                c.fillStyle = '#dc2626'; 
                 c.fill();
                 c.lineWidth = 2;
                 c.strokeStyle = '#ffffff';
                 c.stroke();
-                c.shadowBlur = 0; // Clear immediately
+                c.shadowBlur = 0; 
 
-                // 2. Compute exact time metadata for this exact spot
+                // Compute exact timeline data for the immediate pen interface position
                 let totalDaysElapsed = frame / framesPerDay;
                 let activeDate = new Date(startDate.getTime());
                 activeDate.setMinutes(startDate.getMinutes() + Math.floor(totalDaysElapsed * 24 * 60));
 
-                // Format elements for reading display panel
                 let dateString = activeDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                 let timeString = activeDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                
-                // Convert pixels back into a true simulated scale height (centered on 0)
                 let actualHeightMeters = (-currentWaveY / (cScale * 2));
 
-                // 3. Push text layout straight into HTML readout elements
                 document.getElementById("liveDate").innerText = dateString;
                 document.getElementById("liveTime").innerText = timeString;
                 document.getElementById("liveHeight").innerText = actualHeightMeters.toFixed(2) + " m";
@@ -580,9 +575,9 @@
 
     <div style="text-align: center;">
         <div class="live-readout">
-            📅 Date: <span id="liveDate">12 Jun 2026</span> &nbsp;|&nbsp; 
+            📅 Current Date: <span id="liveDate">12 Jun 2026</span> &nbsp;|&nbsp; 
             🕒 Time: <span id="liveTime">00:00</span> &nbsp;|&nbsp; 
-            🌊 Predicted Height: <span id="liveHeight">0.00 m</span>
+            🌊 Tidal Height: <span id="liveHeight">0.00 m</span>
         </div>
     </div>
 
@@ -607,7 +602,7 @@
         </div>
     </div>
 
-    <p>Horizontal lines on the coordinate chart are spaced 1m apart. The bright crimson tracking ball follows the exact point of current prediction. <em>Tip: Click directly into any yellow cell in the table below to adjust custom amplitude values in real time!</em></p>
+    <p>Horizontal coordinate lines are spaced 1m apart. The bright crimson tracking ball marks the exact moment of current calculation under the pen. Historical steps scroll to the right into the past.</p>
 
     <div id="myDynamicConstituentTable"></div>
     
