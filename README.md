@@ -1,3 +1,3 @@
 # tidemachine
 
-### [Kelvin Tide Machine](https://noc-msm.github.io/tidemachine/kelvin_machine.html)
+### [Kelvin Tide Machine](https://katavouta.github.io/Tide_Machine/kelvin_machine.html)
