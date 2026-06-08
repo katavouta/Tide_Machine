@@ -15,20 +15,20 @@
         let time = 0; // time in hours
         let framesPerDay = 24*6;
         let frame = 0;
-        let phaseName=["M2","S2","N2","K1","O1","P1","K2","M4", "M6"];
-        // Doodson numbers: 31, 36, 28, 17, 10, 15, 38,  48, 55
+        let phaseName=["M2","S2","K1","M4"];
+        // Doodson numbers: 31, 36, 17,  48
         let site_names = ["Liverpool, UK", "Southampton, UK", "User defined"];
 
         let coefs = [
-            [3.038, 0.978, 0.580, 0.123, 0.11500, 0.04600, 0.28400, 0.23700, 0.05500], // m
-            [1.36700, 0.41500, 0.26700, 0.09000, 0.02800, 0.03100, 0.11500, 0.25200, 0.19100], // m
-            [2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], // m
+            [3.038, 0.978, 0.123, 0.23700], // m
+            [1.36700, 0.41500, 0.09000, 0.25200], // m
+            [2.0, 1.0, 0.0, 0.0], // m
         ];
         let doodson = [
-            [31, 36, 28, 17, 10, 15, 38, 48, 55],
+            [31, 36, 17, 48],
         ]
 
-        let period = [12.42, 12.00, 12.66, 23.93, 25.82, 24.07, 11.97, 6.21, 4.14]; // Period in hours
+        let period = [12.42, 12.00, 23.93, 6.21]; // Period in hours
         let scales = [0.7, 1, 1]; // amplitude scale factor station. Length must be number of stations
         let globalScale = 18;
         let currentLocation = 0;
@@ -394,11 +394,6 @@
 
             <h2>Simulation of Kelvin&#39;s Tide Predicting Machine</h2>
 
-            <p>The functioning of Kelvin&#39;s tide predicting mechanism, and the way in which the various constituents
-                contribute to the tide. In the simulated mechanism nine constituents are summed:
-                M<sub>2</sub>, S<sub>2</sub>, N<sub>2</sub>, K<sub>1</sub>, O<sub>1</sub>, P<sub>1</sub>, K<sub>2</sub>,
-                M<sub>4</sub> and M<sub>6</sub>. The initial phases are all set to zero (upper pulleys) or
-                180<sup>o</sup> (lower). The amplitudes can be selected from the pull-down menu to select a given port.</p>
 
             <div style="width:625px; margin: 0 auto;"><canvas height="700" id="myCanvas" width="620"> </canvas>
 
@@ -419,10 +414,7 @@
             </div>
 
 
-            <p>Click to activate. Horizontal lines on the graph are spaced 1m apart. The vertical bars mark off 24-hour days.</p>
-
-            <p>In this simulation the constituents all start out in phase; the typical aspect of the tidal record for
-                the port does not appear until after a simulated week or two.
+            <p>
             The following constituent amplitudes (m) were used in the simulation:
             </p>
 
@@ -483,9 +475,6 @@
                 <input type="text" id="userCoefsInput" placeholder="e.g., 2.0, 1.5, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0">
                 <button onclick="updateUserCoefs()">Update Table</button>
             </div>
-
-            <p>ADD Words about origins of constituents (semi-diurnal / diurnal / shallow-water)</p>
-            <p>ADD Words highlighting key features of Liverpool (large semi-diurnal), Southampton (double highs)</p>
 
             Adapted from a <a href="https://www.ams.org/publicoutreach/feature-column/fcarc-tidesiii3">Feature column
             from the American Mathematical Society</a> on ocean tides.
