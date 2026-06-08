@@ -68,9 +68,6 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 6px rgba(2, 132, 199, 0.3);
         }
-        button:active {
-            transform: translateY(0);
-        }
         button:disabled {
             background-color: #cbd5e1;
             color: #94a3b8;
@@ -106,8 +103,18 @@
             color: #475569;
             font-weight: 600;
         }
-        tr:hover td {
-            background-color: #f8fafc;
+        /* Style for editable cells */
+        .editable-cell {
+            background-color: #fffbeb;
+            color: #b45309;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .editable-cell:hover, .editable-cell:focus {
+            background-color: #fef3c7;
+            box-shadow: inset 0 0 0 2px #f59e0b;
         }
         .input-group {
             background: #f1f5f9;
@@ -132,10 +139,6 @@
         li {
             margin-bottom: 10px;
         }
-        .intro-text {
-            color: #475569;
-            font-size: 16px;
-        }
     </style>
 
     <script type="text/javascript">
@@ -152,10 +155,6 @@
             [2.0, 1.0, 0.5, 0.0, 0.0, 0.0],           
         ];
         
-        let doodson = [
-            [31, 36, 28, 17, 10, 48],
-        ];
-
         let period = [12.42, 12.00, 12.66, 23.93, 25.82, 6.21]; 
         let scales = [0.7, 1, 1]; 
         let globalScale = 18;
@@ -165,16 +164,15 @@
         let phases=[];
         let pulleyOffset = [];
 
-        let nSavedValues = 420; // Expanded to fill the wide display area beautifully
+        let nSavedValues = 420; 
         let savedStart = 0;
         let savedValues =[];
         let isDrawing=false;
 
-        // Enlarged components for better visibility and a grander machine appearance
-        let pulleyRadius = 24;      // Increased from 18
-        let ropeThickness = 2.5;    // Thicker cord
-        let verticalOffset = 260;   // Extended structural separation
-        let machineSpacing = 56;    // Wide horizontal wheel clearance
+        let pulleyRadius = 24;      
+        let ropeThickness = 2.5;    
+        let verticalOffset = 260;   
+        let machineSpacing = 56;    
 
         window.onload = function()
         {
@@ -249,7 +247,6 @@
 
         function DrawCrank(c, x, y, rad, angle, pulleyAngle)
         {
-            // Draw a realistic machined-metal background drive plate
             let grad = c.createRadialGradient(x, y, rad * 0.2, x, y, rad);
             grad.addColorStop(0, '#e2e8f0');
             grad.addColorStop(0.8, '#cbd5e1');
@@ -263,7 +260,6 @@
             c.strokeStyle = '#64748b';
             c.stroke();
 
-            // Radial drive pin line
             let xb = x+Math.cos(angle)*rad;
             let yb = y+Math.sin(angle)*rad;
             c.beginPath();
@@ -273,13 +269,11 @@
             c.lineWidth = 2;
             c.stroke();
 
-            // Heavy pivot pin point
             c.beginPath();
             c.arc(xb, yb, 3, 0, 2*Math.PI);
             c.fillStyle = '#0f172a';
             c.fill();
 
-            // Structural sliding frame link (Scotch Yoke design imitation)
             c.shadowColor = 'rgba(15, 23, 42, 0.08)';
             c.shadowBlur = 4;
             c.shadowOffsetY = 2;
@@ -290,10 +284,9 @@
             c.rect(x-rad-4, yb-4, 2*rad+8, 8);
             c.fill();
             c.stroke();
-            c.shadowBlur = 0; // Reset shadow
+            c.shadowBlur = 0; 
             c.shadowOffsetY = 0;
 
-            // Solid vertical tie-rod connecting up/down to the pulley system
             let rodOffset = 40;
             c.lineWidth = 2.5;
             c.strokeStyle = '#1e293b';
@@ -311,7 +304,6 @@
             let holeDist = pulleyRadius*0.55;
             let holeRadius = pulleyRadius*0.18;
 
-            // Outer golden-brass rim gradient
             let brassGrad = c.createRadialGradient(x, y, pulleyRadius*0.4, x, y, pulleyRadius);
             brassGrad.addColorStop(0, '#fef08a');
             brassGrad.addColorStop(0.7, '#eab308');
@@ -322,7 +314,6 @@
             c.fillStyle = brassGrad;
             c.fill();
 
-            // Elegant mechanical wheel weight-reduction holes
             c.fillStyle = '#1e293b';
             for (let i=0; i<5; i++)
             {
@@ -332,14 +323,12 @@
                 c.fill();
             }
 
-            // Dark inner structural rim accents
             c.beginPath();
             c.arc(x, y, pulleyRadius, 0, 2*Math.PI);
             c.lineWidth = 1.5;
             c.strokeStyle = '#854d0e';
             c.stroke();
 
-            // Center industrial steel mounting bolt axle
             c.beginPath();
             c.arc(x, y, 4, 0, 2*Math.PI);
             c.fillStyle = '#475569';
@@ -351,7 +340,7 @@
         {
             c.beginPath();
             c.lineWidth = ropeThickness;
-            c.strokeStyle = '#c2410c'; // Braided cord copper-orange tone
+            c.strokeStyle = '#c2410c'; 
             c.lineCap = 'round';
             c.lineJoin = 'round';
 
@@ -364,13 +353,11 @@
             }
             c.stroke();
 
-            // Dead-end anchor terminal lock
             c.beginPath();
             c.arc(x-pulleyRadius-0.5*ropeThickness, y+verticalOffset+pulleyOffset[0], 4, 0, Math.PI*2.0);
             c.fillStyle = '#0f172a';
             c.fill();
 
-            // Output cord run spanning horizontally rightwards into chart matrix
             let xp = x+(nPhases-0.5)*machineSpacing;
             let yp = y+0.5*verticalOffset+RopeMovement(nPhases);
             
@@ -380,7 +367,6 @@
             c.strokeStyle = '#c2410c';
             c.stroke();
 
-            // High-visibility illuminated stylus pen marker
             c.shadowColor = 'rgba(2, 132, 199, 0.4)';
             c.shadowBlur = 6;
             c.beginPath();
@@ -390,7 +376,7 @@
             c.lineWidth = 1.5;
             c.strokeStyle = '#ffffff';
             c.stroke();
-            c.shadowBlur = 0; // Clear immediately
+            c.shadowBlur = 0; 
         }
 
         function DrawPlot(c, x, y)
@@ -398,16 +384,13 @@
             let xp = x;
             let yp = y;
 
-            // Clear coordinate backdrop grid plane
             c.fillStyle='#ffffff';
             c.fillRect(xp, yp-150, nSavedValues, 300);
             
-            // Clean outer border wrap
             c.strokeStyle='#cbd5e1';
             c.lineWidth = 1.5;
             c.strokeRect(xp, yp-150, nSavedValues, 300);
 
-            // Fine coordinate scale lines (1 meter steps)
             c.lineWidth = 1;
             c.strokeStyle = '#f1f5f9'; 
             c.beginPath();
@@ -421,7 +404,6 @@
             }
             c.stroke();
             
-            // Prominent dark resting equilibrium datum axis
             c.strokeStyle = '#94a3b8'; 
             c.lineWidth = 1.2;
             c.beginPath();
@@ -429,7 +411,6 @@
             c.lineTo(xp+nSavedValues, yp+0.5);
             c.stroke();
 
-            // Vertical timeline grid bars (24-hour markers)
             c.strokeStyle = '#e2e8f0'; 
             c.lineWidth = 1;
             c.beginPath();
@@ -440,7 +421,6 @@
             }
             c.stroke();
 
-            // Render high-contrast continuous wave profile
             c.beginPath();
             c.strokeStyle = '#0369a1';  
             c.lineWidth = 2.5;
@@ -461,11 +441,9 @@
             let c = canvas.getContext("2d");
 
             let xofs = 60, yofs = 160;
-            // Adaptive horizontal buffer to balance wide components comfortably
             let graphX = 400; 
             let graphY = yofs + 0.5 * verticalOffset;
 
-            // Clear whole panel base canvas coat
             c.fillStyle = '#f8fafc';
             c.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -487,7 +465,6 @@
                 lastRopePos = ropePos;
             }
 
-            // Bold component technical labels below gearheads
             c.font = "bold 13px system-ui, sans-serif";
             for (let i=0; i<nPhases; i++)
             {
@@ -509,6 +486,31 @@
             if (isDrawing) setTimeout("DrawFrame()", 20);
         }
 
+        // Handles background matrix recalculation when user edits table directly
+        function handleTableEdit(cell, constituentIndex) {
+            let newValue = parseFloat(cell.innerText);
+
+            if (isNaN(newValue) || newValue < 0) {
+                alert("Please enter a valid positive numerical amplitude.");
+                cell.innerText = coefs[2][constituentIndex].toFixed(3);
+                return;
+            }
+
+            coefs[2][constituentIndex] = newValue;
+            cell.innerText = newValue.toFixed(3);
+
+            // Sync matrix string inside input box down below
+            document.getElementById("userCoefsInput").value = coefs[2].map(v => v.toFixed(1)).join(', ');
+
+            // Auto-swap dropdown views instantly to let them visualize their custom waves
+            if (currentLocation !== 2) {
+                document.getElementById("locationselect").value = "2";
+                SetLocation();
+            } else {
+                Reset();
+            }
+        }
+
         function updateUserCoefs()
         {
             let input = document.getElementById("userCoefsInput").value;
@@ -525,7 +527,12 @@
             tableDiv.innerHTML = ""; 
             addTable(); 
 
-            alert("User-defined coefficients updated successfully!");
+            if (currentLocation !== 2) {
+                document.getElementById("locationselect").value = "2";
+                SetLocation();
+            } else {
+                Reset();
+            }
         }
     </script>
 </head>
@@ -557,7 +564,7 @@
         </div>
     </div>
 
-    <p>Horizontal lines on the coordinate chart are spaced 1m apart. The light vertical bars mark off individual 24-hour days.</p>
+    <p>Horizontal lines on the coordinate chart are spaced 1m apart. The light vertical bars mark off individual 24-hour days. <em>Tip: Click directly into the yellow cells in the table below to edit custom configuration values!</em></p>
 
     <div id="myDynamicConstituentTable"></div>
     
@@ -592,6 +599,19 @@
                 for (let jconstit = 0; jconstit < phaseName.length; jconstit++) {
                     let td = document.createElement('TD');
                     td.appendChild(document.createTextNode(coefs[istation][jconstit].toFixed(3)));
+                    
+                    // Make only the "User defined" station row (index 2) contentEditable
+                    if (istation === 2) {
+                        td.className = "editable-cell";
+                        td.contentEditable = "true";
+                        td.title = "Click to edit amplitude";
+                        
+                        // Capture changes on blur (focus loss) or pressing Enter key
+                        td.onblur = function() { handleTableEdit(this, jconstit); };
+                        td.onkeydown = function(e) { 
+                            if(e.key === "Enter") { e.preventDefault(); this.blur(); } 
+                        };
+                    }
                     tr.appendChild(td);
                 }
             }
