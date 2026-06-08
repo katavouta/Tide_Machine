@@ -395,7 +395,7 @@
             c.lineWidth = 1.5;
             c.strokeRect(xp, yp-150, nSavedValues, 300);
 
-            // Horizontal amplitude grids
+            // Horizontal amplitude grids (1m steps)
             c.lineWidth = 1;
             c.strokeStyle = '#f1f5f9'; 
             c.beginPath();
@@ -416,39 +416,15 @@
             c.lineTo(xp+nSavedValues, yp+0.5);
             c.stroke();
 
-            // FIXED TIMELINE GRID lines (No longer scrolling)
-            let daysPerGridLine = (framesPerDay === 24) ? 15 : 1; 
-            let pixelSpacing = framesPerDay * daysPerGridLine;
+            // FIXED REFERENCE VERTICAL AXIS (Draws only at the active pen column coordinate)
+            c.strokeStyle = '#cbd5e1';
+            c.lineWidth = 2;
+            c.beginPath();
+            c.moveTo(xp + 0.5, yp + 150);
+            c.lineTo(xp + 0.5, yp - 150);
+            c.stroke();
 
-            c.lineWidth = 1;
-            c.font = "10px ui-monospace, monospace";
-            
-            // Draw static grid markers starting right from the drawing head (xp) moving backward
-            for (let i = 0; i < nSavedValues; i += pixelSpacing)
-            {
-                c.strokeStyle = '#e2e8f0';
-                c.beginPath();
-                c.moveTo(xp + i + 0.5, yp + 130);
-                c.lineTo(xp + i + 0.5, yp - 150);
-                c.stroke();
-
-                // Calculate history labels based on fixed pixel steps away from the current time
-                let daysBehind = i / framesPerDay;
-                let totalDaysElapsed = frame / framesPerDay;
-                
-                let targetDate = new Date(startDate.getTime());
-                targetDate.setMinutes(startDate.getMinutes() + Math.floor((totalDaysElapsed - daysBehind) * 24 * 60));
-
-                let dayStr = targetDate.getDate();
-                let monthStr = targetDate.toLocaleString('en-US', { month: 'short' });
-                let labelText = `${dayStr} ${monthStr}`;
-
-                c.fillStyle = '#94a3b8';
-                let textWidth = c.measureText(labelText).width;
-                c.fillText(labelText, xp + i - (textWidth / 2), yp + 145);
-            }
-
-            // Draw the generated historical wave trace line
+            // Draw the generated historical wave trace line sliding away into the past
             c.beginPath();
             c.strokeStyle = '#0369a1';  
             c.lineWidth = 2.5;
@@ -462,12 +438,12 @@
             }
             c.stroke();
 
-            // --- STATIONARY HIGHLIGHT PIN FOR THE CURRENT MOMENT ---
+            // --- TRACKING PIN & THE PROMINENT SINGLE ANCHOR DATE LOGIC ---
             let currentOffsetIndex = (savedStart + 1) % nSavedValues;
             let currentWaveY = savedValues[currentOffsetIndex];
 
             if (currentWaveY !== undefined) {
-                // Tracking ball locked precisely at the pen generator point (xp)
+                // Tracking ball locked precisely at the pen axis line
                 c.shadowColor = 'rgba(220, 38, 38, 0.6)';
                 c.shadowBlur = 8;
                 c.beginPath();
@@ -479,7 +455,7 @@
                 c.stroke();
                 c.shadowBlur = 0; 
 
-                // Compute exact timeline data for the immediate pen interface position
+                // Compute exact timeline metadata for the immediate pen position
                 let totalDaysElapsed = frame / framesPerDay;
                 let activeDate = new Date(startDate.getTime());
                 activeDate.setMinutes(startDate.getMinutes() + Math.floor(totalDaysElapsed * 24 * 60));
@@ -488,9 +464,27 @@
                 let timeString = activeDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                 let actualHeightMeters = (-currentWaveY / (cScale * 2));
 
+                // Update Dashboard Elements
                 document.getElementById("liveDate").innerText = dateString;
                 document.getElementById("liveTime").innerText = timeString;
                 document.getElementById("liveHeight").innerText = actualHeightMeters.toFixed(2) + " m";
+
+                // DRAW PROMINENT CALLOUT LABEL AT THE PEN AXIS FOOTER
+                let labelText = `📍 Current: ${activeDate.getDate()} ${activeDate.toLocaleString('en-US', { month: 'short' })} ${timeString}`;
+                c.font = "bold 12px ui-monospace, monospace";
+                c.fillStyle = '#0f172a'; // Bold prominent color
+                let textWidth = c.measureText(labelText).width;
+                
+                // Draw clean callout box frame at baseline
+                c.fillStyle = '#e0f2fe';
+                c.fillRect(xp - 10, yp + 132, textWidth + 20, 24);
+                c.lineWidth = 1;
+                c.strokeStyle = '#0284c7';
+                c.strokeRect(xp - 10, yp + 132, textWidth + 20, 24);
+
+                // Print the text
+                c.fillStyle = '#0369a1';
+                c.fillText(labelText, xp, yp + 148);
             }
         }
 
@@ -602,7 +596,7 @@
         </div>
     </div>
 
-    <p>Horizontal coordinate lines are spaced 1m apart. The bright crimson tracking ball marks the exact moment of current calculation under the pen. Historical steps scroll to the right into the past.</p>
+    <p>Horizontal coordinate lines are spaced 1m apart. The prominent timeline anchor label tracks the current time of prediction under the pen pin. Generated trends scroll off to the right into the past.</p>
 
     <div id="myDynamicConstituentTable"></div>
     
