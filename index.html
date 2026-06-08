@@ -46,7 +46,7 @@
             align-items: center;
             flex-wrap: wrap;
         }
-        button, select, input[type="text"] {
+        button, select {
             padding: 10px 16px;
             border-radius: 6px;
             border: 1px solid #cbd5e1;
@@ -103,7 +103,6 @@
             color: #475569;
             font-weight: 600;
         }
-        /* Style for editable cells */
         .editable-cell {
             background-color: #fffbeb;
             color: #b45309;
@@ -116,28 +115,15 @@
             background-color: #fef3c7;
             box-shadow: inset 0 0 0 2px #f59e0b;
         }
-        .input-group {
-            background: #f1f5f9;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 25px 0;
-            border: 1px solid #e2e8f0;
-        }
-        .input-group label {
-            font-weight: 600;
-            color: #334155;
-            display: block;
-            margin-bottom: 8px;
-        }
-        .input-group input {
-            width: 320px;
-            padding: 10px;
-        }
         ul {
             padding-left: 24px;
         }
         li {
             margin-bottom: 10px;
+        }
+        .intro-text {
+            color: #475569;
+            font-size: 16px;
         }
     </style>
 
@@ -486,7 +472,6 @@
             if (isDrawing) setTimeout("DrawFrame()", 20);
         }
 
-        // Handles background matrix recalculation when user edits table directly
         function handleTableEdit(cell, constituentIndex) {
             let newValue = parseFloat(cell.innerText);
 
@@ -498,34 +483,6 @@
 
             coefs[2][constituentIndex] = newValue;
             cell.innerText = newValue.toFixed(3);
-
-            // Sync matrix string inside input box down below
-            document.getElementById("userCoefsInput").value = coefs[2].map(v => v.toFixed(1)).join(', ');
-
-            // Auto-swap dropdown views instantly to let them visualize their custom waves
-            if (currentLocation !== 2) {
-                document.getElementById("locationselect").value = "2";
-                SetLocation();
-            } else {
-                Reset();
-            }
-        }
-
-        function updateUserCoefs()
-        {
-            let input = document.getElementById("userCoefsInput").value;
-            let userCoefs = input.split(',').map(Number);
-
-            if (userCoefs.length !== phaseName.length || userCoefs.some(isNaN)) {
-                alert(`Please enter exactly ${phaseName.length} valid numbers, separated by commas.`);
-                return;
-            }
-
-            coefs[2] = userCoefs;
-
-            let tableDiv = document.getElementById("myDynamicConstituentTable");
-            tableDiv.innerHTML = ""; 
-            addTable(); 
 
             if (currentLocation !== 2) {
                 document.getElementById("locationselect").value = "2";
@@ -564,7 +521,7 @@
         </div>
     </div>
 
-    <p>Horizontal lines on the coordinate chart are spaced 1m apart. The light vertical bars mark off individual 24-hour days. <em>Tip: Click directly into the yellow cells in the table below to edit custom configuration values!</em></p>
+    <p>Horizontal lines on the coordinate chart are spaced 1m apart. The light vertical bars mark off individual 24-hour days. <em>Tip: Click directly into any yellow cell in the table below to adjust custom amplitude values in real time!</em></p>
 
     <div id="myDynamicConstituentTable"></div>
     
@@ -600,13 +557,11 @@
                     let td = document.createElement('TD');
                     td.appendChild(document.createTextNode(coefs[istation][jconstit].toFixed(3)));
                     
-                    // Make only the "User defined" station row (index 2) contentEditable
                     if (istation === 2) {
                         td.className = "editable-cell";
                         td.contentEditable = "true";
                         td.title = "Click to edit amplitude";
                         
-                        // Capture changes on blur (focus loss) or pressing Enter key
                         td.onblur = function() { handleTableEdit(this, jconstit); };
                         td.onkeydown = function(e) { 
                             if(e.key === "Enter") { e.preventDefault(); this.blur(); } 
@@ -619,12 +574,6 @@
         }
         addTable();
     </script>
-
-    <div class="input-group">
-        <label for="userCoefsInput">Modify User-Defined Amplitudes (6 comma-separated values):</label>
-        <input type="text" id="userCoefsInput" value="2.0, 1.0, 0.5, 0.0, 0.0, 0.0">
-        <button onclick="updateUserCoefs()">Update Matrix</button>
-    </div>
 
     <h3>Origins of the Selected Constituents</h3>
     <ul>
