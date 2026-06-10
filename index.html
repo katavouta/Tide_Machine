@@ -184,7 +184,6 @@
             .container { padding: 15px 10px; }
             h2 { font-size: 20px; }
             .live-readout { font-size: 12px; padding: 8px 10px; }
-            /* Force discrete breaks on small mobile to make text block readable */
             .live-readout span { display: inline-block; margin-bottom: 2px; }
             button, select { font-size: 13px; padding: 10px; }
             .intro-text, p { font-size: 14px; }
@@ -229,15 +228,13 @@
         window.onload = function()
         {
             SetLocation();
-            SetSpeed(24*6);
+            SetSpeed();
         }
 
         function SetSpeed()
         {
             framesPerDay = parseInt(document.getElementById("speedselect").value);
-            savedValues=[];
-            if (!isDrawing)
-                DrawFrame();
+            Reset();
         }
         function SetLocation()
         {
@@ -261,6 +258,7 @@
             time = 0;
             frame = 0;
             savedValues=[];
+            savedStart = 0;
             DrawFrame();
         }
 
@@ -283,7 +281,7 @@
         {
             for (let i=0; i<nPhases; i++)
             {
-                phases[i] = ((i%2)*2-1)*t*2.0*Math.PI/period[i];
+                phases[i] = t * 2.0 * Math.PI / period[i];
             }
         }
 
@@ -415,14 +413,14 @@
             
             c.beginPath();
             c.moveTo(xp, y+verticalOffset*((nPhases+1)%2)+pulleyOffset[nPhases]);
-            c.lineTo(graphX, yp);
+            c.lineTo(graphX + nSavedValues, yp);
             c.strokeStyle = '#c2410c';
             c.stroke();
 
             c.shadowColor = 'rgba(2, 132, 199, 0.4)';
             c.shadowBlur = 6;
             c.beginPath();
-            c.arc(graphX, yp, 5, 0, Math.PI*2.0);
+            c.arc(graphX + nSavedValues, yp, 5, 0, Math.PI*2.0);
             c.fillStyle = '#0284c7';
             c.fill();
             c.lineWidth = 1.5;
@@ -463,37 +461,38 @@
             c.lineTo(xp+nSavedValues, yp+0.5);
             c.stroke();
 
-            // FIXED REFERENCE VERTICAL AXIS
+            // FIXED REFERENCE VERTICAL AXIS (Anchored right)
             c.strokeStyle = '#cbd5e1';
             c.lineWidth = 2;
             c.beginPath();
-            c.moveTo(xp + 0.5, yp + 150);
-            c.lineTo(xp + 0.5, yp - 150);
+            c.moveTo(xp + nSavedValues - 0.5, yp + 150);
+            c.lineTo(xp + nSavedValues - 0.5, yp - 150);
             c.stroke();
 
-            // Draw historical trace
+            // Historical trace scrolls leftward
             c.beginPath();
             c.strokeStyle = '#0369a1';  
             c.lineWidth = 2.5;
             c.lineCap = 'round';
             for (let i=0; i<nSavedValues; i++)
             {
-                let ind = (savedStart+i+1)%nSavedValues;
+                let ind = (savedStart + i + 1) % nSavedValues;
                 if(savedValues[ind] !== undefined) {
-                    c.lineTo(xp+i, yp+savedValues[ind]);
+                    c.lineTo(xp + nSavedValues - i, yp + savedValues[ind]);
                 }
             }
             c.stroke();
 
-            // --- TRACKING PIN & ANCHOR DATELINE LOGIC ---
             let currentOffsetIndex = (savedStart + 1) % nSavedValues;
             let currentWaveY = savedValues[currentOffsetIndex];
 
             if (currentWaveY !== undefined) {
+                let pinX = xp + nSavedValues;
+
                 c.shadowColor = 'rgba(220, 38, 38, 0.6)';
                 c.shadowBlur = 8;
                 c.beginPath();
-                c.arc(xp, yp + currentWaveY, 7, 0, Math.PI * 2);
+                c.arc(pinX, yp + currentWaveY, 7, 0, Math.PI * 2);
                 c.fillStyle = '#dc2626'; 
                 c.fill();
                 c.lineWidth = 2;
@@ -509,25 +508,23 @@
                 let timeString = activeDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                 let actualHeightMeters = (-currentWaveY / (cScale * 2));
 
-                // Update Header Dashboard
                 document.getElementById("liveDate").innerText = dateString;
                 document.getElementById("liveTime").innerText = timeString;
                 document.getElementById("liveHeight").innerText = actualHeightMeters.toFixed(2) + " m";
 
-                // Anchor Date Callout below pen position
                 let labelText = `📍 ${activeDate.getDate()} ${activeDate.toLocaleString('en-US', { month: 'short' })} ${timeString}`;
                 c.font = "bold 12px ui-monospace, monospace";
-                c.fillStyle = '#0f172a';
                 let textWidth = c.measureText(labelText).width;
                 
+                let boxX = pinX - textWidth - 5;
                 c.fillStyle = '#e0f2fe';
-                c.fillRect(xp - 5, yp + 132, textWidth + 12, 24);
+                c.fillRect(boxX, yp + 132, textWidth + 12, 24);
                 c.lineWidth = 1;
                 c.strokeStyle = '#0284c7';
-                c.strokeRect(xp - 5, yp + 132, textWidth + 12, 24);
+                c.strokeRect(boxX, yp + 132, textWidth + 12, 24);
 
                 c.fillStyle = '#0369a1';
-                c.fillText(labelText, xp, yp + 148);
+                c.fillText(labelText, boxX + 6, yp + 148);
             }
         }
 
@@ -579,7 +576,7 @@
 
             time += 24/framesPerDay;
             frame++;
-            if (isDrawing) setTimeout("DrawFrame()", 20);
+            if (isDrawing) setTimeout(DrawFrame, 20);
         }
 
         function handleTableEdit(cell, constituentIndex) {
