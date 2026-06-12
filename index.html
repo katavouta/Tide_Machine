@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelvin Tidal Machine</title>
+    <title>Kelvin Tidal Machine - Real Predictions</title>
 
     <style>
         body {
@@ -31,7 +31,6 @@
             text-align: center;
         }
         
-        /* Live digital readout overlay - Responsive text size */
         .live-readout-wrapper {
             text-align: center;
             margin-bottom: 15px;
@@ -56,7 +55,6 @@
             display: inline-block;
         }
 
-        /* RESPONSIVE CANVAS WRAPPER SYSTEM */
         .canvas-container {
             text-align: center;
             margin: 15px 0;
@@ -65,14 +63,11 @@
             border-radius: 8px;
             border: 1px solid #e2e8f0;
             box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
-            
-            /* Crucial: keeps everything contained */
             overflow: hidden; 
             width: 100%;
             box-sizing: border-box;
         }
         
-        /* The Wrapper preserves aspect ratio (560 height / 850 width = ~65.8%) */
         .canvas-scaler {
             position: relative;
             width: 100%;
@@ -80,7 +75,6 @@
             height: 0;
         }
         
-        /* Force canvas to visually scale based on wrapper container sizing */
         .canvas-scaler canvas {
             position: absolute;
             top: 0;
@@ -90,7 +84,6 @@
             object-fit: contain;
         }
 
-        /* Touch-friendly controls */
         .controls {
             margin-top: 15px;
             display: flex;
@@ -101,7 +94,7 @@
             width: 100%;
         }
         button, select {
-            padding: 12px 14px; /* Slightly larger hit targets for mobile fingers */
+            padding: 12px 14px;
             border-radius: 6px;
             border: 1px solid #cbd5e1;
             font-size: 14px;
@@ -110,7 +103,7 @@
             color: #334155;
             cursor: pointer;
             transition: all 0.2s ease;
-            flex: 1 1 auto; /* Allow buttons to grow and adapt dynamically */
+            flex: 1 1 auto;
             min-width: 90px;
             text-align: center;
         }
@@ -132,7 +125,6 @@
             appearance: none;
         }
 
-        /* Table Responsiveness: Adds horizontal swipe fallback if screen is tiny */
         .table-responsive-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -146,7 +138,7 @@
             border-collapse: collapse;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-size: 13px;
-            min-width: 600px; /* Forces structure layout inside scroll wrapper */
+            min-width: 650px;
         }
         th, td {
             padding: 10px 8px;
@@ -165,29 +157,16 @@
             outline: none;
         }
 
-        ul {
-            padding-left: 20px;
-        }
-        li {
-            margin-bottom: 8px;
-            font-size: 15px;
-        }
-        .intro-text {
-            color: #475569;
-            font-size: 15px;
-            text-align: center;
-        }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; font-size: 15px; }
+        .intro-text { color: #475569; font-size: 15px; text-align: center; }
 
-        /* MOBILE MEDIA QUERIES */
         @media (max-width: 600px) {
             body { padding: 5px; }
             .container { padding: 15px 10px; }
             h2 { font-size: 20px; }
             .live-readout { font-size: 12px; padding: 8px 10px; }
-            /* Force discrete breaks on small mobile to make text block readable */
-            .live-readout span { display: inline-block; margin-bottom: 2px; }
             button, select { font-size: 13px; padding: 10px; }
-            .intro-text, p { font-size: 14px; }
         }
     </style>
 
@@ -196,74 +175,86 @@
         let framesPerDay = 24*6;
         let frame = 0;
         
-        let phaseName=["M2", "S2", "N2", "K1", "O1", "M4"];
+        let phaseName=["M2", "S2", "N2", "K1", "O1", "M4", "M6"];
         let site_names = ["Liverpool, UK", "Southampton, UK", "User defined"];
 
         let coefs = [
-            [3.038, 0.978, 0.580, 0.123, 0.115, 0.237], 
-            [1.367, 0.415, 0.267, 0.090, 0.028, 0.252], 
-            [2.0, 1.0, 0.5, 0.0, 0.0, 0.0],           
+            [3.100, 1.000, 0.620, 0.120, 0.110, 0.180, 0.020], 
+            [1.250, 0.390, 0.250, 0.110, 0.050, 0.220, 0.130], 
+            [2.000, 1.000, 0.500, 0.000, 0.000, 0.000, 0.000],           
         ];
         
-        let period = [12.42, 12.00, 12.66, 23.93, 25.82, 6.21]; 
-        let scales = [0.7, 1, 1]; 
+        let period = [12.42, 12.00, 12.66, 23.93, 25.82, 6.21, 4.14]; 
+        let scales = [0.7, 1.3, 1.0]; 
         let globalScale = 18;
         let currentLocation = 0;
 
-        let nPhases = 6; 
+        let nPhases = 7; 
         let phases=[];
         let pulleyOffset = [];
 
-        let nSavedValues = 420; 
-        let savedStart = 0;
-        let savedValues =[];
-        let isDrawing=false;
+        let phase_initial = [
+            [2.45, 0.10, 1.95, 4.20, 0.50, 5.10, 2.20], 
+            [1.90, 5.40, 0.90, 3.80, 5.90, 0.15, 3.85], 
+            [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]  
+        ];
 
-        let pulleyRadius = 24;      
+        let mean_level_offsets = [5.30, 2.70, 0.00];
+
+        let nSavedValues = 370; // Adjusted width slightly to make clean space for right side ruler labels
+        let savedStart = 0;
+        let savedValues = [];
+        let isDrawing = false;
+
+        let pulleyRadius = 20;      
         let ropeThickness = 2.5;    
         let verticalOffset = 260;   
-        let machineSpacing = 56;    
+        let machineSpacing = 48;    
 
         const startDate = new Date(2026, 5, 12, 0, 0, 0); 
 
         window.onload = function()
         {
+            let canvas = document.getElementById("myCanvas");
+            let ctx = canvas.getContext("2d");
+            let dpr = window.devicePixelRatio || 1;
+            if(dpr > 1) {
+                canvas.width = 850 * dpr;
+                canvas.height = 560 * dpr;
+                ctx.scale(dpr, dpr);
+            }
             SetLocation();
-            SetSpeed(24*6);
+            SetSpeed();
         }
 
         function SetSpeed()
         {
             framesPerDay = parseInt(document.getElementById("speedselect").value);
-            savedValues=[];
-            if (!isDrawing)
-                DrawFrame();
+            Reset();
         }
         function SetLocation()
         {
             currentLocation = parseInt(document.getElementById("locationselect").value);
-            cScale = globalScale*scales[currentLocation];
+            cScale = globalScale * scales[currentLocation];
             Reset();
         }
         function RunPause()
         {
             if (isDrawing) { StopDrawing(); } else { StartDrawing(); }
         }
-
         function Step()
         {
             if (!isDrawing) DrawFrame();
         }
-
         function Reset()
         {
             StopDrawing();
             time = 0;
             frame = 0;
             savedValues=[];
+            savedStart = 0;
             DrawFrame();
         }
-
         function StartDrawing()
         {
             document.getElementById("runpausebutton").innerHTML="Pause";
@@ -271,7 +262,6 @@
             isDrawing=true;
             DrawFrame();
         }
-
         function StopDrawing()
         {
             isDrawing=false;
@@ -283,7 +273,7 @@
         {
             for (let i=0; i<nPhases; i++)
             {
-                phases[i] = ((i%2)*2-1)*t*2.0*Math.PI/period[i];
+                phases[i] = phase_initial[currentLocation][i] + (t * 2.0 * Math.PI / period[i]);
             }
         }
 
@@ -292,20 +282,20 @@
             let r = 0;
             for (let i=0; i<n; i++)
             {
-                r += ((i%2)*-2+1)*cScale*coefs[currentLocation][i]*Math.sin(phases[i])*2;
+                r += ((i%2)*-2+1)*cScale*coefs[currentLocation][i]*Math.sin(phases[i])*1.6;
             }
             return r;
         }
 
         function DrawCrank(c, x, y, rad, angle, pulleyAngle)
         {
-            let grad = c.createRadialGradient(x, y, rad * 0.2, x, y, rad);
+            let grad = c.createRadialGradient(x, y, rad * 0.2, x, y, Math.max(rad, 1));
             grad.addColorStop(0, '#e2e8f0');
             grad.addColorStop(0.8, '#cbd5e1');
             grad.addColorStop(1, '#94a3b8');
             
             c.beginPath();
-            c.arc(x, y, rad, 0, 2*Math.PI);
+            c.arc(x, y, Math.max(rad, 2), 0, 2*Math.PI);
             c.fillStyle = grad;
             c.fill();
             c.lineWidth = 1;
@@ -415,14 +405,14 @@
             
             c.beginPath();
             c.moveTo(xp, y+verticalOffset*((nPhases+1)%2)+pulleyOffset[nPhases]);
-            c.lineTo(graphX, yp);
+            c.lineTo(graphX + nSavedValues, yp);
             c.strokeStyle = '#c2410c';
             c.stroke();
 
             c.shadowColor = 'rgba(2, 132, 199, 0.4)';
             c.shadowBlur = 6;
             c.beginPath();
-            c.arc(graphX, yp, 5, 0, Math.PI*2.0);
+            c.arc(graphX + nSavedValues, yp, 5, 0, Math.PI*2.0);
             c.fillStyle = '#0284c7';
             c.fill();
             c.lineWidth = 1.5;
@@ -435,65 +425,95 @@
         {
             let xp = x;
             let yp = y;
+            let totalBoxWidth = nSavedValues + 55; // Extended box frame width to enclose the scale labels cleanly
 
             c.fillStyle='#ffffff';
-            c.fillRect(xp, yp-150, nSavedValues, 300);
+            c.fillRect(xp, yp-150, totalBoxWidth, 300);
             
             c.strokeStyle='#cbd5e1';
             c.lineWidth = 1.5;
-            c.strokeRect(xp, yp-150, nSavedValues, 300);
+            c.strokeRect(xp, yp-150, totalBoxWidth, 300);
 
+            // Draw Background Horizontal Gridlines and calculate absolute height ticks
             c.lineWidth = 1;
             c.strokeStyle = '#f1f5f9'; 
-            c.beginPath();
-            for (let i=-Math.floor(75/cScale); i<=Math.floor(75/cScale); i++)
+            let boundLines = Math.floor(75 / (cScale * 0.8));
+            
+            c.font = "11px ui-monospace, monospace";
+            c.fillStyle = '#64748b';
+            c.textAlign = "left";
+
+            for (let i=-boundLines; i<=boundLines; i++)
             {
-                if (i!==0) 
-                {
-                    c.moveTo(xp, yp+0.5+2*cScale*i);
-                    c.lineTo(xp+nSavedValues, yp+0.5+2*cScale*i);  
+                let currentLineY = yp + 0.5 + 1.6 * cScale * i;
+                
+                // Keep grid rendering contained strictly inside the graphing window limits
+                if (currentLineY >= yp - 145 && currentLineY <= yp + 145) {
+                    if (i !== 0) {
+                        c.beginPath();
+                        c.moveTo(xp, currentLineY);
+                        c.lineTo(xp + totalBoxWidth, currentLineY);  
+                        c.stroke();
+                    }
+                    
+                    // Render precise numerical height markers alongside the right grid column
+                    let structuralMeters = (- (1.6 * cScale * i) / (cScale * 1.6));
+                    let absoluteLabelHeight = structuralMeters + mean_level_offsets[currentLocation];
+                    c.fillText(absoluteLabelHeight.toFixed(1) + "m", xp + nSavedValues + 8, currentLineY + 4);
                 }
             }
-            c.stroke();
             
+            // Draw Mean Sea Level baseline axis
             c.strokeStyle = '#94a3b8'; 
             c.lineWidth = 1.2;
             c.beginPath();
             c.moveTo(xp, yp+0.5);
-            c.lineTo(xp+nSavedValues, yp+0.5);
+            c.lineTo(xp + totalBoxWidth, yp+0.5);
             c.stroke();
+            c.fillText(mean_level_offsets[currentLocation].toFixed(1) + "m", xp + nSavedValues + 8, yp + 4.5);
 
-            // FIXED REFERENCE VERTICAL AXIS
+            // Dynamic Right-hand side Y-Axis title string "Height (m)"
+            c.save();
+            c.translate(xp + totalBoxWidth - 12, yp);
+            c.rotate(Math.PI / 2);
+            c.font = "bold 11px system-ui, sans-serif";
+            c.fillStyle = '#475569';
+            c.textAlign = "center";
+            c.fillText("Height (m)", 0, 0);
+            c.restore();
+
+            // Active tracking pin boundary intersection wall line
             c.strokeStyle = '#cbd5e1';
             c.lineWidth = 2;
             c.beginPath();
-            c.moveTo(xp + 0.5, yp + 150);
-            c.lineTo(xp + 0.5, yp - 150);
+            c.moveTo(xp + nSavedValues - 0.5, yp + 150);
+            c.lineTo(xp + nSavedValues - 0.5, yp - 150);
             c.stroke();
 
-            // Draw historical trace
+            // Trace history leftward
             c.beginPath();
             c.strokeStyle = '#0369a1';  
             c.lineWidth = 2.5;
             c.lineCap = 'round';
             for (let i=0; i<nSavedValues; i++)
             {
-                let ind = (savedStart+i+1)%nSavedValues;
+                let ind = (savedStart + i + 1) % nSavedValues;
                 if(savedValues[ind] !== undefined) {
-                    c.lineTo(xp+i, yp+savedValues[ind]);
+                    c.lineTo(xp + nSavedValues - i, yp + savedValues[ind]);
                 }
             }
             c.stroke();
 
-            // --- TRACKING PIN & ANCHOR DATELINE LOGIC ---
             let currentOffsetIndex = (savedStart + 1) % nSavedValues;
             let currentWaveY = savedValues[currentOffsetIndex];
 
             if (currentWaveY !== undefined) {
+                let pinX = xp + nSavedValues;
+
                 c.shadowColor = 'rgba(220, 38, 38, 0.6)';
                 c.shadowBlur = 8;
                 c.beginPath();
-                c.arc(xp, yp + currentWaveY, 7, 0, Math.PI * 2);
+                c.arc(pinX, yp + currentWaveY, 7, 0, Math.PI * 2);
                 c.fillStyle = '#dc2626'; 
                 c.fill();
                 c.lineWidth = 2;
@@ -507,27 +527,28 @@
 
                 let dateString = activeDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                 let timeString = activeDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                let actualHeightMeters = (-currentWaveY / (cScale * 2));
+                
+                let structuralAmplitudeMeters = (-currentWaveY / (cScale * 1.6));
+                let actualHeightMeters = structuralAmplitudeMeters + mean_level_offsets[currentLocation];
 
-                // Update Header Dashboard
                 document.getElementById("liveDate").innerText = dateString;
                 document.getElementById("liveTime").innerText = timeString;
                 document.getElementById("liveHeight").innerText = actualHeightMeters.toFixed(2) + " m";
 
-                // Anchor Date Callout below pen position
                 let labelText = `📍 ${activeDate.getDate()} ${activeDate.toLocaleString('en-US', { month: 'short' })} ${timeString}`;
-                c.font = "bold 12px ui-monospace, monospace";
-                c.fillStyle = '#0f172a';
+                c.font = "bold 11px ui-monospace, monospace";
                 let textWidth = c.measureText(labelText).width;
                 
+                let boxX = pinX - textWidth - 8;
                 c.fillStyle = '#e0f2fe';
-                c.fillRect(xp - 5, yp + 132, textWidth + 12, 24);
+                c.fillRect(boxX, yp + 132, textWidth + 12, 24);
                 c.lineWidth = 1;
                 c.strokeStyle = '#0284c7';
-                c.strokeRect(xp - 5, yp + 132, textWidth + 12, 24);
+                c.strokeRect(boxX, yp + 132, textWidth + 12, 24);
 
                 c.fillStyle = '#0369a1';
-                c.fillText(labelText, xp, yp + 148);
+                c.textAlign = "left";
+                c.fillText(labelText, boxX + 6, yp + 148);
             }
         }
 
@@ -536,12 +557,12 @@
             let canvas = document.getElementById("myCanvas");
             let c = canvas.getContext("2d");
 
-            let xofs = 60, yofs = 160;
-            let graphX = 400; 
+            let xofs = 40, yofs = 160;
+            let graphX = 390; 
             let graphY = yofs + 0.5 * verticalOffset;
 
             c.fillStyle = '#f8fafc';
-            c.fillRect(0, 0, canvas.width, canvas.height);
+            c.fillRect(0, 0, 850, 560);
 
             GeneratePhases(time);
 
@@ -562,12 +583,12 @@
             }
 
             c.font = "bold 13px system-ui, sans-serif";
+            c.textAlign = "center";
             for (let i=0; i<nPhases; i++)
             {
                 let xp = xofs+i*machineSpacing;
                 c.fillStyle = '#475569';
-                let tw= c.measureText(phaseName[i]).width;
-                c.fillText(phaseName[i], xp-0.5*tw, yofs+verticalOffset+45);
+                c.fillText(phaseName[i], xp, yofs+verticalOffset+45);
             }
 
             savedValues[savedStart] = RopeMovement(nPhases);
@@ -579,7 +600,7 @@
 
             time += 24/framesPerDay;
             frame++;
-            if (isDrawing) setTimeout("DrawFrame()", 20);
+            if (isDrawing) setTimeout(DrawFrame, 20);
         }
 
         function handleTableEdit(cell, constituentIndex) {
@@ -608,7 +629,7 @@
 <div class="container">
     <h2>Simulation of Kelvin&#39;s Tide Predicting Machine</h2>
 
-    <p class="intro-text">Harmonic constituents are mechanically summed via an elegant system of wires and pulleys to draw an automated tidal curve in real time.</p>
+    <p class="intro-text">Real-world historical astronomical arguments mapped for 12 June 2026.</p>
 
     <div class="live-readout-wrapper">
         <div class="live-readout">
@@ -642,7 +663,7 @@
     </div>
 
     <p style="font-size:14px; color:#475569; text-align:center; margin-top:5px;">
-        Horizontal coordinate lines are spaced 1m apart. Turn your mobile device landscape for an even closer view!
+        Y-Axis gridlines map 1-meter elevation intervals above Chart Datum.
     </p>
 
     <div class="table-responsive-wrapper">
@@ -706,7 +727,7 @@
         <li><strong>N<sub>2</sub> (Larger lunar elliptic):</strong> Accounts for the monthly variation in lunar distance.</li>
         <li><strong>K<sub>1</sub> (Lunisolar diurnal):</strong> Adjusts for the declination tilts of both the Moon and Sun.</li>
         <li><strong>O<sub>1</sub> (Principal lunar diurnal):</strong> Captures the changing north-south path of the lunar orbit.</li>
-        <li><strong>M<sub>4</sub> (Shallow water overtide):</strong> Local distortion generated in shallow shelf seas.</li>
+        <li><strong>M<sub>4</sub> &amp; M<sub>6</sub> (Shallow water higher harmonics):</strong> Local shallow-water distortions. The strong M<sub>6</sub> over Southampton simulates its unique double high water stand.</li>
     </ul>
 </div>
 
