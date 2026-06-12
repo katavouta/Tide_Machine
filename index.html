@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelvin Tidal Machine - Original Order Left Output</title>
+    <title>Kelvin Tidal Machine - Left Axis Layout</title>
 
     <style>
         body {
@@ -175,7 +175,6 @@
         let framesPerDay = 24*6;
         let frame = 0;
         
-        // Exact original component order kept intact (M2 first on left)
         let phaseName=["M2", "S2", "N2", "K1", "O1", "M4", "M6"];
         let site_names = ["Liverpool, UK", "Southampton, UK", "User defined"];
 
@@ -278,11 +277,9 @@
             }
         }
 
-        // Mechanical rope movement formula sums backward from right to left
         function RopeMovement(n)
         {
             let r = 0;
-            // Evaluates right-hand side constituents up to target left pulley step index
             for (let i = nPhases - 1; i >= n; i--)
             {
                 let relativeIndex = (nPhases - 1) - i;
@@ -390,7 +387,6 @@
             c.lineCap = 'round';
             c.lineJoin = 'round';
 
-            // Threading rope through gears from right edge to left edge
             for (let i=0; i<nPhases; i++)
             {
                 let relativeOrder = (nPhases - 1) - i;
@@ -401,7 +397,6 @@
             }
             c.stroke();
 
-            // Rightmost end (next to M6) drops cleanly down to a stationary bottom anchor pin
             let rightAnchorX = machineStartX + (nPhases - 1) * machineSpacing + pulleyRadius + 0.5*ropeThickness;
             let rightAnchorY = y + verticalOffset + pulleyOffset[nPhases];
             c.beginPath();
@@ -414,7 +409,6 @@
             c.fillStyle = '#0f172a';
             c.fill();
 
-            // Leftmost output rope leaves the M2 pulley on the left side and connects straight to the graph pin
             let leftOutputX = machineStartX - 0.5 * machineSpacing;
             let leftOutputY = y+0.5*verticalOffset+RopeMovement(0);
             
@@ -438,16 +432,17 @@
 
         function DrawPlot(c, x, y)
         {
-            let xp = x;
+            let graphOffsetX = x + 50; // shift tracking curve content right to clear the left scale column space
             let yp = y;
-            let totalBoxWidth = nSavedValues + 55; 
+            let boundingBoxWidth = nSavedValues; 
+            let totalVisualWidth = boundingBoxWidth + 50;
 
             c.fillStyle='#ffffff';
-            c.fillRect(xp, yp-150, totalBoxWidth, 300);
+            c.fillRect(x, yp-150, totalVisualWidth, 300);
             
             c.strokeStyle='#cbd5e1';
             c.lineWidth = 1.5;
-            c.strokeRect(xp, yp-150, totalBoxWidth, 300);
+            c.strokeRect(x, yp-150, totalVisualWidth, 300);
 
             c.lineWidth = 1;
             c.strokeStyle = '#f1f5f9'; 
@@ -455,8 +450,9 @@
             
             c.font = "11px ui-monospace, monospace";
             c.fillStyle = '#64748b';
-            c.textAlign = "left";
+            c.textAlign = "right";
 
+            // Draw Background Horizontal Gridlines and calculate absolute height ticks on left side
             for (let i=-boundLines; i<=boundLines; i++)
             {
                 let currentLineY = yp + 0.5 + 1.6 * cScale * i;
@@ -464,59 +460,68 @@
                 if (currentLineY >= yp - 145 && currentLineY <= yp + 145) {
                     if (i !== 0) {
                         c.beginPath();
-                        c.moveTo(xp, currentLineY);
-                        c.lineTo(xp + totalBoxWidth, currentLineY);  
+                        c.moveTo(x, currentLineY);
+                        c.lineTo(x + totalVisualWidth, currentLineY);  
                         c.stroke();
                     }
                     
                     let structuralMeters = (- (1.6 * cScale * i) / (cScale * 1.6));
                     let absoluteLabelHeight = structuralMeters + mean_level_offsets[currentLocation];
-                    c.fillText(absoluteLabelHeight.toFixed(1) + "m", xp + nSavedValues + 8, currentLineY + 4);
+                    c.fillText(absoluteLabelHeight.toFixed(1) + "m", x + 42, currentLineY + 4);
                 }
             }
             
             c.strokeStyle = '#94a3b8'; 
             c.lineWidth = 1.2;
             c.beginPath();
-            c.moveTo(xp, yp+0.5);
-            c.lineTo(xp + totalBoxWidth, yp+0.5);
+            c.moveTo(x, yp+0.5);
+            c.lineTo(x + totalVisualWidth, yp+0.5);
             c.stroke();
-            c.fillText(mean_level_offsets[currentLocation].toFixed(1) + "m", xp + nSavedValues + 8, yp + 4.5);
+            c.fillText(mean_level_offsets[currentLocation].toFixed(1) + "m", x + 42, yp + 4.5);
 
+            // Left-hand side Y-Axis title string "Height (m)"
             c.save();
-            c.translate(xp + totalBoxWidth - 12, yp);
-            c.rotate(Math.PI / 2);
+            c.translate(x + 12, yp);
+            c.rotate(-Math.PI / 2);
             c.font = "bold 11px system-ui, sans-serif";
             c.fillStyle = '#475569';
             c.textAlign = "center";
             c.fillText("Height (m)", 0, 0);
             c.restore();
 
+            // Right-hand active tracking pin boundary line
             c.strokeStyle = '#cbd5e1';
             c.lineWidth = 2;
             c.beginPath();
-            c.moveTo(xp + nSavedValues - 0.5, yp + 150);
-            c.lineTo(xp + nSavedValues - 0.5, yp - 150);
+            c.moveTo(graphOffsetX + boundingBoxWidth - 0.5, yp + 150);
+            c.lineTo(graphOffsetX + boundingBoxWidth - 0.5, yp - 150);
             c.stroke();
+
+            // Trace history moves leftward within bounded box frame
+            c.save();
+            c.beginPath();
+            c.rect(graphOffsetX, yp - 150, boundingBoxWidth, 300);
+            c.clip();
 
             c.beginPath();
             c.strokeStyle = '#0369a1';  
             c.lineWidth = 2.5;
             c.lineCap = 'round';
-            for (let i=0; i<nSavedValues; i++)
+            for (let i=0; i<boundingBoxWidth; i++)
             {
-                let ind = (savedStart + i + 1) % nSavedValues;
+                let ind = (savedStart + i + 1) % boundingBoxWidth;
                 if(savedValues[ind] !== undefined) {
-                    c.lineTo(xp + nSavedValues - i, yp + savedValues[ind]);
+                    c.lineTo(graphOffsetX + boundingBoxWidth - i, yp + savedValues[ind]);
                 }
             }
             c.stroke();
+            c.restore();
 
-            let currentOffsetIndex = (savedStart + 1) % nSavedValues;
+            let currentOffsetIndex = (savedStart + 1) % boundingBoxWidth;
             let currentWaveY = savedValues[currentOffsetIndex];
 
             if (currentWaveY !== undefined) {
-                let pinX = xp + nSavedValues;
+                let pinX = graphOffsetX + boundingBoxWidth;
 
                 c.shadowColor = 'rgba(220, 38, 38, 0.6)';
                 c.shadowBlur = 8;
@@ -579,7 +584,6 @@
             let lastRopePos = 0;
             pulleyOffset[0]=0;
             
-            // Loop left-to-right across the gears, but computing internal rotation backward
             for (let i=0; i<nPhases; i++)
             {
                 ropePos = RopeMovement(i);
@@ -608,7 +612,7 @@
             if (savedStart<0) savedStart = nSavedValues-1;
 
             DrawPlot(c, graphX, graphY);
-            DrawRope(c, machineStartX, yofs, graphX + nSavedValues, graphY);
+            DrawRope(c, machineStartX, yofs, graphX + nSavedValues + 50, graphY);
 
             time += 24/framesPerDay;
             frame++;
