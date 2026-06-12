@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelvin Tidal Machine - Left Graph Layout</title>
+    <title>Kelvin Tidal Machine - Original Order Left Output</title>
 
     <style>
         body {
@@ -175,18 +175,17 @@
         let framesPerDay = 24*6;
         let frame = 0;
         
-        // Reversed mechanical execution order to sum from right-to-left up to M2
-        let phaseName=["M6", "M4", "O1", "K1", "N2", "S2", "M2"];
+        // Exact original component order kept intact (M2 first on left)
+        let phaseName=["M2", "S2", "N2", "K1", "O1", "M4", "M6"];
         let site_names = ["Liverpool, UK", "Southampton, UK", "User defined"];
 
-        // Coefs mapped to the flipped constituent order indices
         let coefs = [
-            [0.020, 0.180, 0.110, 0.120, 0.620, 1.000, 3.100], 
-            [0.130, 0.220, 0.050, 0.110, 0.250, 0.390, 1.250], 
-            [0.000, 0.000, 0.000, 0.000, 0.500, 1.000, 2.000],           
+            [3.100, 1.000, 0.620, 0.120, 0.110, 0.180, 0.020], 
+            [1.250, 0.390, 0.250, 0.110, 0.050, 0.220, 0.130], 
+            [2.000, 1.000, 0.500, 0.000, 0.000, 0.000, 0.000],           
         ];
         
-        let period = [4.14, 6.21, 25.82, 23.93, 12.66, 12.00, 12.42]; 
+        let period = [12.42, 12.00, 12.66, 23.93, 25.82, 6.21, 4.14]; 
         let scales = [0.7, 1.3, 1.0]; 
         let globalScale = 18;
         let currentLocation = 0;
@@ -196,8 +195,8 @@
         let pulleyOffset = [];
 
         let phase_initial = [
-            [2.20, 5.10, 0.50, 4.20, 1.95, 0.10, 2.45], 
-            [3.85, 0.15, 5.90, 3.80, 0.90, 5.40, 1.90], 
+            [2.45, 0.10, 1.95, 4.20, 0.50, 5.10, 2.20], 
+            [1.90, 5.40, 0.90, 3.80, 5.90, 0.15, 3.85], 
             [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]  
         ];
 
@@ -279,12 +278,15 @@
             }
         }
 
+        // Mechanical rope movement formula sums backward from right to left
         function RopeMovement(n)
         {
             let r = 0;
-            for (let i=0; i<n; i++)
+            // Evaluates right-hand side constituents up to target left pulley step index
+            for (let i = nPhases - 1; i >= n; i--)
             {
-                r += ((i%2)*-2+1)*cScale*coefs[currentLocation][i]*Math.sin(phases[i])*1.6;
+                let relativeIndex = (nPhases - 1) - i;
+                r += ((relativeIndex % 2) * -2 + 1) * cScale * coefs[currentLocation][i] * Math.sin(phases[i]) * 1.6;
             }
             return r;
         }
@@ -314,7 +316,7 @@
             c.stroke();
 
             c.beginPath();
-            c.arc(xb, yb, 3, 0, 2*2*Math.PI);
+            c.arc(xb, yb, 3, 0, 2*Math.PI);
             c.fillStyle = '#0f172a';
             c.fill();
 
@@ -388,37 +390,44 @@
             c.lineCap = 'round';
             c.lineJoin = 'round';
 
-            // Draw rope moving down through the gears from right to left
+            // Threading rope through gears from right edge to left edge
             for (let i=0; i<nPhases; i++)
             {
-                c.moveTo(machineStartX+(i-0.5)*machineSpacing, y+verticalOffset*((i+1)%2)+pulleyOffset[i]);
-                c.lineTo(machineStartX+(i-0.5)*machineSpacing, y+verticalOffset*(i%2)+pulleyOffset[i+1]);
-                c.arc(machineStartX+i*machineSpacing, y+verticalOffset*(i%2)+pulleyOffset[i+1],
-                    pulleyRadius+0.5*ropeThickness, Math.PI, 0, i%2);
+                let relativeOrder = (nPhases - 1) - i;
+                c.moveTo(machineStartX+(i-0.5)*machineSpacing, y+verticalOffset*((relativeOrder+1)%2)+pulleyOffset[i]);
+                c.lineTo(machineStartX+(i-0.5)*machineSpacing, y+verticalOffset*(relativeOrder%2)+pulleyOffset[i+1]);
+                c.arc(machineStartX+i*machineSpacing, y+verticalOffset*(relativeOrder%2)+pulleyOffset[i+1],
+                    pulleyRadius+0.5*ropeThickness, Math.PI, 0, relativeOrder%2);
             }
             c.stroke();
 
-            // Right-side anchor weight pin (was on left)
-            let rightWeightX = machineStartX + (nPhases - 0.5) * machineSpacing + pulleyRadius + 0.5*ropeThickness;
+            // Rightmost end (next to M6) drops cleanly down to a stationary bottom anchor pin
+            let rightAnchorX = machineStartX + (nPhases - 1) * machineSpacing + pulleyRadius + 0.5*ropeThickness;
+            let rightAnchorY = y + verticalOffset + pulleyOffset[nPhases];
             c.beginPath();
-            c.arc(rightWeightX, y+verticalOffset+pulleyOffset[nPhases], 4, 0, Math.PI*2.0);
+            c.moveTo(machineStartX + (nPhases - 1) * machineSpacing + pulleyRadius + 0.5*ropeThickness, y + verticalOffset * 0 + pulleyOffset[nPhases]);
+            c.lineTo(rightAnchorX, rightAnchorY);
+            c.stroke();
+            
+            c.beginPath();
+            c.arc(rightAnchorX, rightAnchorY, 4, 0, Math.PI*2.0);
             c.fillStyle = '#0f172a';
             c.fill();
 
-            // Output rope emerges from the M2 pulley on the left and connects to the active tracking window
-            let xp = machineStartX - 0.5 * machineSpacing;
-            let yp = y+0.5*verticalOffset+RopeMovement(nPhases);
+            // Leftmost output rope leaves the M2 pulley on the left side and connects straight to the graph pin
+            let leftOutputX = machineStartX - 0.5 * machineSpacing;
+            let leftOutputY = y+0.5*verticalOffset+RopeMovement(0);
             
             c.beginPath();
-            c.moveTo(xp, y+verticalOffset*((0+1)%2)+pulleyOffset[0]);
-            c.lineTo(graphBoxWidth, yp);
+            c.moveTo(leftOutputX, y+verticalOffset*((nPhases)%2)+pulleyOffset[0]);
+            c.lineTo(graphBoxWidth, leftOutputY);
             c.strokeStyle = '#c2410c';
             c.stroke();
 
             c.shadowColor = 'rgba(2, 132, 199, 0.4)';
             c.shadowBlur = 6;
             c.beginPath();
-            c.arc(graphBoxWidth, yp, 5, 0, Math.PI*2.0);
+            c.arc(graphBoxWidth, leftOutputY, 5, 0, Math.PI*2.0);
             c.fillStyle = '#0284c7';
             c.fill();
             c.lineWidth = 1.5;
@@ -483,7 +492,6 @@
             c.fillText("Height (m)", 0, 0);
             c.restore();
 
-            // Anchor tracking wall boundary line on the right edge of the left box
             c.strokeStyle = '#cbd5e1';
             c.lineWidth = 2;
             c.beginPath();
@@ -491,7 +499,6 @@
             c.lineTo(xp + nSavedValues - 0.5, yp - 150);
             c.stroke();
 
-            // Trace history moves leftward towards the left margins
             c.beginPath();
             c.strokeStyle = '#0369a1';  
             c.lineWidth = 2.5;
@@ -558,12 +565,9 @@
             let canvas = document.getElementById("myCanvas");
             let c = canvas.getContext("2d");
 
-            // Graph box positions on the left side
             let graphX = 15; 
             let yofs = 160;
             let graphY = yofs + 0.5 * verticalOffset;
-            
-            // Pulley structure starts on the right side immediately after graph box
             let machineStartX = graphX + nSavedValues + 105; 
 
             c.fillStyle = '#f8fafc';
@@ -574,16 +578,19 @@
             let pulleyAngle = 0;
             let lastRopePos = 0;
             pulleyOffset[0]=0;
+            
+            // Loop left-to-right across the gears, but computing internal rotation backward
             for (let i=0; i<nPhases; i++)
             {
-                ropePos = RopeMovement(i+1);
+                ropePos = RopeMovement(i);
+                let relativeOrder = (nPhases - 1) - i;
                 pulleyAngle = -0.5*(lastRopePos+ropePos)/(pulleyRadius+0.5*ropeThickness);
 
                 let xp = machineStartX+i*machineSpacing;
                 pulleyOffset[i+1] =
-                    DrawCrank(c, xp, yofs+verticalOffset*(i%2),
+                    DrawCrank(c, xp, yofs+verticalOffset*(relativeOrder%2),
                         coefs[currentLocation][i]*cScale,
-                        phases[i], pulleyAngle*((i%2)*-2+1));
+                        phases[i], pulleyAngle*((relativeOrder%2)*-2+1));
                 lastRopePos = ropePos;
             }
 
@@ -596,7 +603,7 @@
                 c.fillText(phaseName[i], xp, yofs+verticalOffset+45);
             }
 
-            savedValues[savedStart] = RopeMovement(nPhases);
+            savedValues[savedStart] = RopeMovement(0);
             savedStart--;
             if (savedStart<0) savedStart = nSavedValues-1;
 
