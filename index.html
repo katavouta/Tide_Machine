@@ -195,13 +195,13 @@
         let phases=[];
         let pulleyOffset = [];
 
-        // FIXED: True Astronomical Arguments (V0 + u) in DEGREES calculated specifically for 12 June 2026 00:00 UTC
+        // Astronomical Equilibrium Arguments (V0 + u) in DEGREES for 12 June 2026 00:00 UTC
         const V0_u_2026_06_12 = [214.3, 0.0, 78.4, 185.1, 102.3, 112.0, 257.7, 68.6, 282.9];
 
-        // FIXED: Authentic Greenwich Phase Lags (G) in DEGREES for Liverpool and Southampton
+        // Greenwich Phase Lags (G) in DEGREES for Liverpool and Southampton
         let phase_g_degrees = [
-            [321.0, 356.0, 298.0, 354.0, 164.0, 48.0,  166.0, 245.0, 112.0], // Liverpool G (deg)
-            [321.0, 355.0, 301.0, 353.0, 142.0, 342.0, 144.0, 115.0, 275.0], // Southampton G (deg)
+            [321.0, 356.0, 298.0, 354.0, 164.0, 48.0,  166.0, 245.0, 112.0], // Liverpool
+            [321.0, 355.0, 301.0, 353.0, 142.0, 342.0, 144.0, 115.0, 275.0], // Southampton
             [0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0]    // User defined
         ];
 
@@ -217,7 +217,6 @@
         let verticalOffset = 260;   
         let machineSpacing = 42;    
 
-        // Note: The astronomical setup matches UTC to ensure seamless comparison with global/standard tide tables
         const startDate = new Date(Date.UTC(2026, 5, 12, 0, 0, 0)); 
 
         window.onload = function()
@@ -276,28 +275,22 @@
             document.getElementById("stepbutton").disabled=false;
         }
 
-        // FIXED: Complete rewriting of the phase loop logic to correctly handle degrees, radians, and time progressions
         function GeneratePhases(t)
         {
             for (let i=0; i<nPhases; i++)
             {
-                // Calculate current astronomical position in degrees: V0 + u + (speed * t)
                 let astDegree = V0_u_2026_06_12[i] + (t * 360.0 / period[i]);
-                // Subtract Greenwich phase lag: Account for local hydrodynamics
                 let currentDeg = astDegree - phase_g_degrees[currentLocation][i];
-                // Convert down to clean radians for JavaScript's Math trig suite
                 phases[i] = currentDeg * Math.PI / 180.0;
             }
         }
 
-        // FIXED: Synchronized the machine's mechanical summing phase argument with the cosine projection (standard oceanographic practice)
         function RopeMovement(n)
         {
             let r = 0;
             for (let i = nPhases - 1; i >= n; i--)
             {
                 let relativeIndex = (nPhases - 1) - i;
-                // Swapped Math.sin to Math.cos to mirror standard harmonic predictions (Height = Amplitude * cos(phase))
                 r += ((relativeIndex % 2) * -2 + 1) * cScale * coefs[currentLocation][i] * Math.cos(phases[i]) * 1.6;
             }
             return r;
@@ -318,7 +311,6 @@
             c.strokeStyle = '#64748b';
             c.stroke();
 
-            // Adjusted rotation vector to natively match cosine phase offsets visually
             let xb = x+Math.cos(angle)*rad;
             let yb = y+Math.sin(angle)*rad;
             c.beginPath();
@@ -434,7 +426,8 @@
             c.strokeStyle = '#c2410c';
             c.stroke();
 
-            .shadowColor = 'rgba(2, 132, 199, 0.4)';
+            // FIXED: Added missing canvas context reference 'c.' here
+            c.shadowColor = 'rgba(2, 132, 199, 0.4)';
             c.shadowBlur = 6;
             c.beginPath();
             c.arc(graphBoxWidth, leftOutputY, 5, 0, Math.PI*2.0);
