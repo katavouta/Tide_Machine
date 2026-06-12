@@ -1,114 +1,268 @@
 <!DOCTYPE html>
-<!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelvin Tidal Machine - 8 Constituents</title>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #1e293b;
+            line-height: 1.6;
+            padding: 15px 10px;
+        }
+        .container {
+            max-width: 1250px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 20px 15px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+        h2 {
+            color: #0f172a;
+            font-size: 24px;
+            margin-top: 0;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 12px;
+            text-align: center;
+        }
+        
+        .live-readout-wrapper {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .live-readout {
+            background: #0f172a;
+            color: #38bdf8;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 14px;
+            padding: 10px 16px;
+            border-radius: 6px;
+            display: inline-block;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid #1e293b;
+            width: 100%;
+            box-sizing: border-box;
+            max-width: 600px;
+        }
+        .live-readout span {
+            color: #ffffff;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .canvas-container {
+            text-align: center;
+            margin: 15px 0;
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
+            overflow: hidden; 
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .canvas-scaler {
+            position: relative;
+            width: 100%;
+            padding-bottom: 62.222%; 
+            height: 0;
+        }
+        
+        .canvas-scaler canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        button, select {
+            padding: 12px 14px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            font-size: 14px;
+            font-weight: 500;
+            background: #fff;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1 1 auto;
+            min-width: 90px;
+            text-align: center;
+        }
+        button {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);
+        }
+        button:hover {
+            background-color: #0369a1;
+        }
+        select {
+            padding-right: 28px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3Csvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+            appearance: none;
+        }
+
+        .table-responsive-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin: 25px 0;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            -webkit-overflow-scrolling: touch;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            min-width: 720px;
+        }
+        th, td {
+            padding: 10px 8px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+        th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+        }
+        .editable-cell {
+            background-color: #fffbeb;
+            color: #b45309;
+            font-weight: 600;
+            outline: none;
+        }
+
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; font-size: 15px; }
+        .intro-text { color: #475569; font-size: 15px; text-align: center; }
+
+        @media (max-width: 600px) {
+            body { padding: 5px; }
+            .container { padding: 15px 10px; }
+            h2 { font-size: 20px; }
+            .live-readout { font-size: 12px; padding: 8px 10px; }
+            button, select { font-size: 13px; padding: 10px; }
+        }
+    </style>
 
     <script type="text/javascript">
-        /* Simulation of Kelvin's Tide Processing Machine
-           Modified from Bill Casselman's java programme at
-           http://www.ams.org/samplings/feature-column/fcarc-tidesiii3
-        */
-
-        let time = 0; // time in hours
+        let time = 0; 
         let framesPerDay = 24*6;
         let frame = 0;
-        let phaseName=["M2","S2","N2","K1","O1","P1","K2","M4", "M6"];
-        // Doodson numbers: 31, 36, 28, 17, 10, 15, 38,  48, 55
+        
+        // Extended component array with K2 integrated chronologically
+        let phaseName=["M2", "S2", "N2", "K2", "K1", "O1", "M4", "M6"];
         let site_names = ["Liverpool, UK", "Southampton, UK", "User defined"];
 
         let coefs = [
-            [3.038, 0.978, 0.580, 0.123, 0.11500, 0.04600, 0.28400, 0.23700, 0.05500], // m
-            [1.36700, 0.41500, 0.26700, 0.09000, 0.02800, 0.03100, 0.11500, 0.25200, 0.19100], // m
-            [2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], // m
+            [3.130, 1.010, 0.580, 0.280, 0.170, 0.160, 0.130, 0.060], 
+            [1.960, 0.629, 0.374, 0.180, 0.081, 0.072, 0.067, 0.029], 
+            [2.000, 1.000, 0.500, 0.250, 0.000, 0.000, 0.000, 0.000],           
         ];
-        let doodson = [
-            [31, 36, 28, 17, 10, 15, 38, 48, 55],
-        ]
-
-        let period = [12.42, 12.00, 12.66, 23.93, 25.82, 24.07, 11.97, 6.21, 4.14]; // Period in hours
-        let scales = [0.7, 1, 1]; // amplitude scale factor station. Length must be number of stations
+        
+        let period = [12.42, 12.00, 12.66, 11.97, 23.93, 25.82, 6.21, 4.14]; 
+        let scales = [0.7, 1.3, 1.0]; 
         let globalScale = 18;
         let currentLocation = 0;
 
-        let nPhases = 9;
+        let nPhases = 8; 
         let phases=[];
         let pulleyOffset = [];
 
-        let nSavedValues = 300;
-        let savedStart = 0;
-        let savedValues =[];
-        let isDrawing=false;
+        let phase_initial = [
+            [2.45, 0.10, 1.95, 0.25, 4.20, 0.50, 5.10, 2.20], 
+            [1.90, 5.40, 0.90, 5.50, 3.80, 5.90, 0.15, 3.85], 
+            [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]  
+        ];
 
-        let pulleyRadius = 18;
-        let ropeThickness = 2;
-        let verticalOffset = 230;
+        let mean_level_offsets = [5.30, 2.70, 0.00];
+
+        let nSavedValues = 370; 
+        let savedStart = 0;
+        let savedValues = [];
+        let isDrawing = false;
+
+        let pulleyRadius = 20;      
+        let ropeThickness = 2.5;    
+        let verticalOffset = 260;   
+        let machineSpacing = 48;    
+
+        const startDate = new Date(2026, 5, 12, 0, 0, 0); 
 
         window.onload = function()
         {
             let canvas = document.getElementById("myCanvas");
-            let c = canvas.getContext("2d");
-            c.font="12px sans-serif";
+            let ctx = canvas.getContext("2d");
+            let dpr = window.devicePixelRatio || 1;
+            if(dpr > 1) {
+                canvas.width = 900 * dpr;
+                canvas.height = 560 * dpr;
+                ctx.scale(dpr, dpr);
+            }
             SetLocation();
-            SetSpeed(24*6);
+            SetSpeed();
         }
 
         function SetSpeed()
         {
             framesPerDay = parseInt(document.getElementById("speedselect").value);
-            savedValues=[];
-            if (!isDrawing)
-                DrawFrame();
+            Reset();
         }
         function SetLocation()
         {
             currentLocation = parseInt(document.getElementById("locationselect").value);
-            cScale = globalScale*scales[currentLocation];
+            cScale = globalScale * scales[currentLocation];
             Reset();
         }
         function RunPause()
         {
-            if (isDrawing)
-            {
-                StopDrawing();
-            }
-            else
-            {
-                StartDrawing();
-            }
+            if (isDrawing) { StopDrawing(); } else { StartDrawing(); }
         }
-
         function Step()
         {
-            if (!isDrawing)
-            {
-                DrawFrame();
-            }
+            if (!isDrawing) DrawFrame();
         }
-
         function Reset()
         {
             StopDrawing();
             time = 0;
             frame = 0;
             savedValues=[];
+            savedStart = 0;
             DrawFrame();
-            time = 0;
-            frame = 0;
-            savedValues=[];
         }
-
         function StartDrawing()
         {
-
             document.getElementById("runpausebutton").innerHTML="Pause";
             document.getElementById("stepbutton").disabled=true;
             isDrawing=true;
             DrawFrame();
         }
-
         function StopDrawing()
         {
             isDrawing=false;
@@ -120,186 +274,292 @@
         {
             for (let i=0; i<nPhases; i++)
             {
-                phases[i] = ((i%2)*2-1)*t*2.0*Math.PI/period[i];
+                phases[i] = phase_initial[currentLocation][i] + (t * 2.0 * Math.PI / period[i]);
             }
         }
-
-
 
         function RopeMovement(n)
         {
             let r = 0;
-            for (let i=0; i<n; i++)
+            for (let i = nPhases - 1; i >= n; i--)
             {
-                r += ((i%2)*-2+1)*cScale*coefs[currentLocation][i]*Math.sin(phases[i])*2;
+                let relativeIndex = (nPhases - 1) - i;
+                r += ((relativeIndex % 2) * -2 + 1) * cScale * coefs[currentLocation][i] * Math.sin(phases[i]) * 1.6;
             }
             return r;
         }
 
         function DrawCrank(c, x, y, rad, angle, pulleyAngle)
         {
+            let grad = c.createRadialGradient(x, y, rad * 0.2, x, y, Math.max(rad, 1));
+            grad.addColorStop(0, '#e2e8f0');
+            grad.addColorStop(0.8, '#cbd5e1');
+            grad.addColorStop(1, '#94a3b8');
+            
             c.beginPath();
-            c.arc(x, y, rad, 0, 2*Math.PI);
-            c.lineWidth=0.5;
-            c.strokeStyle = '#808080';
+            c.arc(x, y, Math.max(rad, 2), 0, 2*Math.PI);
+            c.fillStyle = grad;
+            c.fill();
+            c.lineWidth = 1;
+            c.strokeStyle = '#64748b';
             c.stroke();
 
             let xb = x+Math.cos(angle)*rad;
             let yb = y+Math.sin(angle)*rad;
+            c.beginPath();
             c.moveTo(x, y);
             c.lineTo(xb, yb);
+            c.strokeStyle = '#475569';
+            c.lineWidth = 2;
             c.stroke();
 
             c.beginPath();
-            c.arc(xb, yb, 1.5, 0, 2*Math.PI);
-            c.fillStyle = '#808080';
+            c.arc(xb, yb, 3, 0, 2*Math.PI);
+            c.fillStyle = '#0f172a';
             c.fill();
 
-            c.strokeStyle = '#000080';
-            c.strokeRect(x-rad-2, yb-2, 2*rad+4, 4);
-
-            c.strokeStyle = '#000000';
-
-            let pulleyOffset = 30;
-            c.lineWidth=1.5;
+            c.shadowColor = 'rgba(15, 23, 42, 0.08)';
+            c.shadowBlur = 4;
+            c.shadowOffsetY = 2;
+            c.fillStyle = '#f8fafc';
+            c.strokeStyle = '#334155';
+            c.lineWidth = 1.5;
             c.beginPath();
-            c.moveTo(x, yb-2);
-            c.lineTo(x, yb-2-pulleyOffset);
+            c.rect(x-rad-4, yb-4, 2*rad+8, 8);
+            c.fill();
+            c.stroke();
+            c.shadowBlur = 0; 
+            c.shadowOffsetY = 0;
+
+            let rodOffset = 40;
+            c.lineWidth = 2.5;
+            c.strokeStyle = '#1e293b';
+            c.beginPath();
+            c.moveTo(x, yb);
+            c.lineTo(x, yb-4-rodOffset);
             c.stroke();
 
-            DrawPulley(c, x, yb-2-pulleyOffset, pulleyAngle);
-            return yb-2-pulleyOffset - y;
+            DrawPulley(c, x, yb-4-rodOffset, pulleyAngle);
+            return yb-4-rodOffset - y;
         }
 
         function DrawPulley(c, x, y, angle)
         {
-            let holeDist = pulleyRadius*0.6;
-            let holeRadius = pulleyRadius*0.15;
+            let holeDist = pulleyRadius*0.55;
+            let holeRadius = pulleyRadius*0.18;
 
-            let canvas = document.getElementById("myCanvas");
-
-
-            c.beginPath();
-            c.arc(x, y, pulleyRadius, 0, 2*Math.PI);
-            for (let i=0; i<6; i++)
-            {
-                let langle = angle + 2.0*Math.PI*i/6;
-                c.moveTo(x+Math.sin(langle)*holeDist, y+Math.cos(langle)*holeDist);
-                c.arc(x+Math.sin(langle)*holeDist, y+Math.cos(langle)*holeDist, holeRadius,  0, 2*Math.PI,true);
-            }
-            c.fillStyle = '#c0b040';
-            c.fill();
+            let brassGrad = c.createRadialGradient(x, y, pulleyRadius*0.4, x, y, pulleyRadius);
+            brassGrad.addColorStop(0, '#fef08a');
+            brassGrad.addColorStop(0.7, '#eab308');
+            brassGrad.addColorStop(1, '#ca8a04');
 
             c.beginPath();
             c.arc(x, y, pulleyRadius, 0, 2*Math.PI);
-            c.lineWidth=0.5;
-            c.strokeStyle = '#000000';
-            c.stroke();
-
-            c.beginPath();
-            c.arc(x, y, 2, 0, 2*Math.PI);
-            c.fillStyle = '#000000';
+            c.fillStyle = brassGrad;
             c.fill();
-        }
 
-        function DrawRope(c, x, y)
-        {
-            c.beginPath();
-            c.lineWidth=ropeThickness;
-            c.strokeStyle = '#a05000';
-            c.fillStyle = '#a05000';
-            for (let i=0; i<nPhases; i++)
+            c.fillStyle = '#1e293b';
+            for (let i=0; i<5; i++)
             {
-                c.moveTo(x+(i-0.5)*(2*pulleyRadius+ropeThickness), y+verticalOffset*((i+1)%2)+pulleyOffset[i]);
-                c.lineTo(x+(i-0.5)*(2*pulleyRadius+ropeThickness), y+verticalOffset*(i%2)+pulleyOffset[i+1]);
-                c.arc(x+i*(2*pulleyRadius+ropeThickness), y+verticalOffset*(i%2)+pulleyOffset[i+1],
-                    pulleyRadius+0.5*ropeThickness, Math.PI, 0,i%2);
-            }
-            c.stroke();
-
-            c.beginPath();
-            c.arc(x-pulleyRadius-0.5*ropeThickness, y+verticalOffset+pulleyOffset[0], 3, 0, Math.PI*2.0);
-            c.fill();
-
-            let xp = x+(nPhases-0.5)*(2*pulleyRadius+ropeThickness);
-            let yp = y+0.5*verticalOffset+RopeMovement(nPhases);
-            c.beginPath();
-            c.moveTo(xp, y+verticalOffset*((nPhases+1)%2)+pulleyOffset[nPhases]);
-            c.lineTo(xp, yp+350);
-            c.stroke();
-
-            c.beginPath();
-            c.arc(xp, yp, 3, 0, Math.PI*2.0);
-            c.fill();
-
-            c.strokeStyle = '#808080'; // Add pen
-            c.lineWidth = 1;
-            c.beginPath();
-            c.moveTo(xp, yp+350);
-            c.lineTo(xp+10, yp+350);
-            c.stroke();
-
-            c.beginPath();
-            c.arc(xp, yp+350, 3, 0, Math.PI*2.0);
-            c.fill();
-
-
-            for (let i=0; i<nPhases; i++)
-            {
-                let xp = x+(i-0.5)*(2*pulleyRadius+ropeThickness);
-                let yp = y+0.5*verticalOffset-30+((i%2)*2-1)*RopeMovement(i);
+                let langle = angle + 2.0*Math.PI*i/5;
                 c.beginPath();
-                c.arc(xp, yp, 2, 0, Math.PI*2.0);
+                c.arc(x+Math.sin(langle)*holeDist, y+Math.cos(langle)*holeDist, holeRadius, 0, 2*Math.PI);
                 c.fill();
             }
+
+            c.beginPath();
+            c.arc(x, y, pulleyRadius, 0, 2*Math.PI);
+            c.lineWidth = 1.5;
+            c.strokeStyle = '#854d0e';
+            c.stroke();
+
+            c.beginPath();
+            c.arc(x, y, 4, 0, 2*Math.PI);
+            c.fillStyle = '#475569';
+            c.fill();
+            c.stroke();
+        }
+
+        function DrawRope(c, machineStartX, y, graphBoxWidth, graphY)
+        {
+            c.beginPath();
+            c.lineWidth = ropeThickness;
+            c.strokeStyle = '#c2410c'; 
+            c.lineCap = 'round';
+            c.lineJoin = 'round';
+
+            for (let i=0; i<nPhases; i++)
+            {
+                let relativeOrder = (nPhases - 1) - i;
+                c.moveTo(machineStartX+(i-0.5)*machineSpacing, y+verticalOffset*((relativeOrder+1)%2)+pulleyOffset[i]);
+                c.lineTo(machineStartX+(i-0.5)*machineSpacing, y+verticalOffset*(relativeOrder%2)+pulleyOffset[i+1]);
+                c.arc(machineStartX+i*machineSpacing, y+verticalOffset*(relativeOrder%2)+pulleyOffset[i+1],
+                    pulleyRadius+0.5*ropeThickness, Math.PI, 0, relativeOrder%2);
+            }
+            c.stroke();
+
+            let rightAnchorX = machineStartX + (nPhases - 1) * machineSpacing + pulleyRadius + 0.5*ropeThickness;
+            let rightAnchorY = y + verticalOffset + pulleyOffset[nPhases];
+            c.beginPath();
+            c.moveTo(machineStartX + (nPhases - 1) * machineSpacing + pulleyRadius + 0.5*ropeThickness, y + verticalOffset * 0 + pulleyOffset[nPhases]);
+            c.lineTo(rightAnchorX, rightAnchorY);
+            c.stroke();
+            
+            c.beginPath();
+            c.arc(rightAnchorX, rightAnchorY, 4, 0, Math.PI*2.0);
+            c.fillStyle = '#0f172a';
+            c.fill();
+
+            let leftOutputX = machineStartX - 0.5 * machineSpacing;
+            let leftOutputY = y+0.5*verticalOffset+RopeMovement(0);
+            
+            c.beginPath();
+            c.moveTo(leftOutputX, y+verticalOffset*((nPhases)%2)+pulleyOffset[0]);
+            c.lineTo(graphBoxWidth, leftOutputY);
+            c.strokeStyle = '#c2410c';
+            c.stroke();
+
+            c.shadowColor = 'rgba(2, 132, 199, 0.4)';
+            c.shadowBlur = 6;
+            c.beginPath();
+            c.arc(graphBoxWidth, leftOutputY, 5, 0, Math.PI*2.0);
+            c.fillStyle = '#0284c7';
+            c.fill();
+            c.lineWidth = 1.5;
+            c.strokeStyle = '#ffffff';
+            c.stroke();
+            c.shadowBlur = 0; 
         }
 
         function DrawPlot(c, x, y)
         {
-            let xp = Math.ceil(x+(nPhases-0.5)*(2*pulleyRadius+ropeThickness));
-            let yp = Math.ceil(y+0.5*verticalOffset);
+            let graphOffsetX = x + 50; 
+            let yp = y;
+            let boundingBoxWidth = nSavedValues; 
+            let totalVisualWidth = boundingBoxWidth + 50;
 
+            c.fillStyle='#ffffff';
+            c.fillRect(x, yp-150, totalVisualWidth, 300);
+            
+            c.strokeStyle='#cbd5e1';
+            c.lineWidth = 1.5;
+            c.strokeRect(x, yp-150, totalVisualWidth, 300);
 
-            c.fillStyle='rgb(255,255,255)';
-            c.fillRect(xp-5,yp-150,nSavedValues+5,300);
+            c.lineWidth = 1;
+            c.strokeStyle = '#f1f5f9'; 
+            let boundLines = Math.floor(75 / (cScale * 0.8));
+            
+            c.font = "11px ui-monospace, monospace";
+            c.fillStyle = '#64748b';
+            c.textAlign = "right";
 
-            c.lineWidth=1;
-            c.strokeStyle='#e0e0e0'; // y=const lines. 1m apart
-            c.beginPath();
-            for (let i=-Math.floor(75/cScale); i<=Math.floor(75/cScale); i++)
+            for (let i=-boundLines; i<=boundLines; i++)
             {
-                if (i!==0) // horizontal lines
-                {
-                    c.moveTo(xp-4.5, yp+0.5+2*cScale*i);
-                    c.lineTo(xp-nSavedValues, yp+0.5+2*cScale*i);  // incl. factor of 2, yet 1m apart?
+                let currentLineY = yp + 0.5 + 1.6 * cScale * i;
+                
+                if (currentLineY >= yp - 145 && currentLineY <= yp + 145) {
+                    if (i !== 0) {
+                        c.beginPath();
+                        c.moveTo(x, currentLineY);
+                        c.lineTo(x + totalVisualWidth, currentLineY);  
+                        c.stroke();
+                    }
+                    
+                    let structuralMeters = (- (1.6 * cScale * i) / (cScale * 1.6));
+                    let absoluteLabelHeight = structuralMeters + mean_level_offsets[currentLocation];
+                    c.fillText(absoluteLabelHeight.toFixed(1) + "m", x + 42, currentLineY + 4);
+                }
+            }
+            
+            c.strokeStyle = '#94a3b8'; 
+            c.lineWidth = 1.2;
+            c.beginPath();
+            c.moveTo(x, yp+0.5);
+            c.lineTo(x + totalVisualWidth, yp+0.5);
+            c.stroke();
+            c.fillText(mean_level_offsets[currentLocation].toFixed(1) + "m", x + 42, yp + 4.5);
+
+            c.save();
+            c.translate(x + 12, yp);
+            c.rotate(-Math.PI / 2);
+            c.font = "bold 11px system-ui, sans-serif";
+            c.fillStyle = '#475569';
+            c.textAlign = "center";
+            c.fillText("Height (m)", 0, 0);
+            c.restore();
+
+            c.strokeStyle = '#cbd5e1';
+            c.lineWidth = 2;
+            c.beginPath();
+            c.moveTo(graphOffsetX + boundingBoxWidth - 0.5, yp + 150);
+            c.lineTo(graphOffsetX + boundingBoxWidth - 0.5, yp - 150);
+            c.stroke();
+
+            c.save();
+            c.beginPath();
+            c.rect(graphOffsetX, yp - 150, boundingBoxWidth, 300);
+            c.clip();
+
+            c.beginPath();
+            c.strokeStyle = '#0369a1';  
+            c.lineWidth = 2.5;
+            c.lineCap = 'round';
+            for (let i=0; i<boundingBoxWidth; i++)
+            {
+                let ind = (savedStart + i + 1) % boundingBoxWidth;
+                if(savedValues[ind] !== undefined) {
+                    c.lineTo(graphOffsetX + boundingBoxWidth - i, yp + savedValues[ind]);
                 }
             }
             c.stroke();
-            c.strokeStyle='#a0a0e0'; // x-axis
-            c.beginPath();
-            c.moveTo(xp-4.5, yp+0.5);
-            c.lineTo(xp-nSavedValues, yp+0.5);
+            c.restore();
 
-            c.stroke();
+            let currentOffsetIndex = (savedStart + 1) % boundingBoxWidth;
+            let currentWaveY = savedValues[currentOffsetIndex];
 
-            c.strokeStyle='#a0a0e0'; // vertical lines (daily)
-            c.beginPath();
-            for (let i=-5+(frame+5)%framesPerDay; i<nSavedValues; i+=framesPerDay)
-            {
-                c.moveTo(xp-i+0.5,yp+150);
-                c.lineTo(xp-i+0.5,yp-150);
+            if (currentWaveY !== undefined) {
+                let pinX = graphOffsetX + boundingBoxWidth;
+
+                c.shadowColor = 'rgba(220, 38, 38, 0.6)';
+                c.shadowBlur = 8;
+                c.beginPath();
+                c.arc(pinX, yp + currentWaveY, 7, 0, Math.PI * 2);
+                c.fillStyle = '#dc2626'; 
+                c.fill();
+                c.lineWidth = 2;
+                c.strokeStyle = '#ffffff';
+                c.stroke();
+                c.shadowBlur = 0; 
+
+                let totalDaysElapsed = frame / framesPerDay;
+                let activeDate = new Date(startDate.getTime());
+                activeDate.setMinutes(startDate.getMinutes() + Math.floor(totalDaysElapsed * 24 * 60));
+
+                let dateString = activeDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                let timeString = activeDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                
+                let structuralAmplitudeMeters = (-currentWaveY / (cScale * 1.6));
+                let actualHeightMeters = structuralAmplitudeMeters + mean_level_offsets[currentLocation];
+
+                document.getElementById("liveDate").innerText = dateString;
+                document.getElementById("liveTime").innerText = timeString;
+                document.getElementById("liveHeight").innerText = actualHeightMeters.toFixed(2) + " m";
+
+                let labelText = `📍 ${activeDate.getDate()} ${activeDate.toLocaleString('en-US', { month: 'short' })} ${timeString}`;
+                c.font = "bold 11px ui-monospace, monospace";
+                let textWidth = c.measureText(labelText).width;
+                
+                let boxX = pinX - textWidth - 8;
+                c.fillStyle = '#e0f2fe';
+                c.fillRect(boxX, yp + 132, textWidth + 12, 24);
+                c.lineWidth = 1;
+                c.strokeStyle = '#0284c7';
+                c.strokeRect(boxX, yp + 132, textWidth + 12, 24);
+
+                c.fillStyle = '#0369a1';
+                c.textAlign = "left";
+                c.fillText(labelText, boxX + 6, yp + 148);
             }
-            c.stroke();
-
-            c.beginPath();
-            c.strokeStyle = '#4000a0';  // pen colour
-            c.lineWidth = 1.5;
-            for (let i=0; i<nSavedValues; i++)
-            {
-                let ind = (savedStart+i+1)%nSavedValues;
-                c.lineTo(xp-i,yp+savedValues[ind]);
-            }
-            c.stroke();
         }
 
         function DrawFrame()
@@ -307,195 +567,183 @@
             let canvas = document.getElementById("myCanvas");
             let c = canvas.getContext("2d");
 
-            let xofs = 50, yofs = 100;
+            let graphX = 15; 
+            let yofs = 160;
+            let graphY = yofs + 0.5 * verticalOffset;
+            let machineStartX = graphX + nSavedValues + 105; 
 
-            c.fillStyle='#fafafc';
-            c.fillRect(0,0,canvas.width,canvas.height);
+            c.fillStyle = '#f8fafc';
+            c.fillRect(0, 0, 900, 560);
 
             GeneratePhases(time);
 
             let pulleyAngle = 0;
             let lastRopePos = 0;
             pulleyOffset[0]=0;
+            
             for (let i=0; i<nPhases; i++)
             {
-                ropePos = RopeMovement(i+1);
-
+                ropePos = RopeMovement(i);
+                let relativeOrder = (nPhases - 1) - i;
                 pulleyAngle = -0.5*(lastRopePos+ropePos)/(pulleyRadius+0.5*ropeThickness);
 
-                let xp = xofs+i*(2*pulleyRadius+ropeThickness);
+                let xp = machineStartX+i*machineSpacing;
                 pulleyOffset[i+1] =
-                    DrawCrank(c, xp, yofs+verticalOffset*(i%2),
+                    DrawCrank(c, xp, yofs+verticalOffset*(relativeOrder%2),
                         coefs[currentLocation][i]*cScale,
-                        phases[i], pulleyAngle*((i%2)*-2+1));
+                        phases[i], pulleyAngle*((relativeOrder%2)*-2+1));
                 lastRopePos = ropePos;
             }
 
+            c.font = "bold 13px system-ui, sans-serif";
+            c.textAlign = "center";
             for (let i=0; i<nPhases; i++)
             {
-                let xp = xofs+i*(2*pulleyRadius+ropeThickness);
-                let tw= c.measureText(phaseName[i]).width;
-                c.fillText(phaseName[i],xp-0.5*tw, yofs+verticalOffset+40);
+                let xp = machineStartX+i*machineSpacing;
+                c.fillStyle = '#475569';
+                c.fillText(phaseName[i], xp, yofs+verticalOffset+45);
             }
 
-
-            savedValues[savedStart] = RopeMovement(nPhases);
+            savedValues[savedStart] = RopeMovement(0);
             savedStart--;
             if (savedStart<0) savedStart = nSavedValues-1;
 
-            //DrawPlot(c, xofs+10, yofs);
-            DrawPlot(c, 100-xofs, yofs+350);
-
-
-            DrawRope(c, xofs, yofs);
+            DrawPlot(c, graphX, graphY);
+            DrawRope(c, machineStartX, yofs, graphX + nSavedValues + 50, graphY);
 
             time += 24/framesPerDay;
             frame++;
-            if (isDrawing) setTimeout("DrawFrame()",20);
+            if (isDrawing) setTimeout(DrawFrame, 20);
         }
 
-        function updateUserCoefs()
-        {
-            // Get the input value
-            let input = document.getElementById("userCoefsInput").value;
+        function handleTableEdit(cell, constituentIndex) {
+            let newValue = parseFloat(cell.innerText);
 
-            // Parse the input into an array of floating-point numbers
-            let userCoefs = input.split(',').map(Number);
-
-            // Validate the input (ensure it matches the number of phases)
-            if (userCoefs.length !== phaseName.length || userCoefs.some(isNaN)) {
-                alert(`Please enter exactly ${phaseName.length} valid numbers, separated by commas.`);
+            if (isNaN(newValue) || newValue < 0) {
+                alert("Please enter a valid positive numerical amplitude.");
+                cell.innerText = coefs[2][constituentIndex].toFixed(3);
                 return;
             }
 
-            // Update the last row of the coefs array
-            coefs[2] = userCoefs;
+            coefs[2][constituentIndex] = newValue;
+            cell.innerText = newValue.toFixed(3);
 
-            // Update the table to reflect the new values
-            let tableDiv = document.getElementById("myDynamicConstituentTable");
-            tableDiv.innerHTML = ""; // Clear the existing table
-            addTable(); // Recreate the table with updated values
-
-            alert("User-defined coefficients updated successfully!");
+            if (currentLocation !== 2) {
+                document.getElementById("locationselect").value = "2";
+                SetLocation();
+            } else {
+                Reset();
+            }
         }
-
     </script>
-
-    <title>Kelvin Tidal Machine</title>
-
 </head>
 <body>
 
+<div class="container">
+    <h2>Simulation of Kelvin&#39;s Tide Predicting Machine</h2>
 
-<!--Main content-->
-<div class="container-fluid gutters">
-    <div class="row" style="border-left:1px solid #ccc;border-right:1px solid #ccc;border-bottom:1px solid #ccc ">
-        <div class="col-md-12">
+    <p class="intro-text">Harmonic constituents are mechanically summed via an elegant system of wires and pulleys to draw an automated tidal curve in real time.</p>
 
-            <h2>Simulation of Kelvin&#39;s Tide Predicting Machine</h2>
-
-            <p>The functioning of Kelvin&#39;s tide predicting mechanism, and the way in which the various constituents
-                contribute to the tide. In the simulated mechanism nine constituents are summed:
-                M<sub>2</sub>, S<sub>2</sub>, N<sub>2</sub>, K<sub>1</sub>, O<sub>1</sub>, P<sub>1</sub>, K<sub>2</sub>,
-                M<sub>4</sub> and M<sub>6</sub>. The initial phases are all set to zero (upper pulleys) or
-                180<sup>o</sup> (lower). The amplitudes can be selected from the pull-down menu to select a given port.</p>
-
-            <div style="width:625px; margin: 0 auto;"><canvas height="700" id="myCanvas" width="620"> </canvas>
-
-                <div><button id="runpausebutton" onclick="RunPause();" style="width: 70px">Run</button>
-                    <button id="stepbutton" onclick="Step();" style="width: 70px">Step</button>
-                    <button onclick="Reset();" style="width: 70px">Reset</button>
-                    <select id="locationselect" onchange="SetLocation()">
-                        <option value="0">Liverpool, UK</option>
-                        <option value="1">Southampton, UK</option>
-                        <option value="2">User defined</option>
-                    </select>
-                    <select id="speedselect" onchange="SetSpeed()">
-                        <option value="144">Slow</option>
-                        <option value="24">Fast</option>
-                    </select>
-                </div>
-
-            </div>
-
-
-            <p>Click to activate. Horizontal lines on the graph are spaced 1m apart. The vertical bars mark off 24-hour days.</p>
-
-            <p>In this simulation the constituents all start out in phase; the typical aspect of the tidal record for
-                the port does not appear until after a simulated week or two.
-            The following constituent amplitudes (m) were used in the simulation:
-            </p>
-
-            <div id="myDynamicConstituentTable"></div>
-            <script type="text/javascript">
-                function addTable() {
-                    let myTableDiv = document.getElementById("myDynamicConstituentTable");
-
-                    let table = document.createElement('TABLE');
-                    table.border = '0';
-
-                    let tableBody = document.createElement('TBODY');
-                    table.appendChild(tableBody);
-
-                    let tr = document.createElement('TR');
-                    tableBody.appendChild(tr);
-                    let td = document.createElement('TD');
-                    td.width = '150';
-                    td.appendChild(document.createTextNode(""));
-                    tr.appendChild(td);
-
-                    for (let jconstit = 0; jconstit < phaseName.length; jconstit++) {
-                        let td = document.createElement('TD');
-                        td.width = '50';
-                        td.appendChild(document.createTextNode(phaseName[jconstit]));
-                        tr.appendChild(td);
-                    }
-
-                    for (let istation = 0; istation < coefs.length; istation++) {
-                        let tr = document.createElement('TR');
-                        tableBody.appendChild(tr);
-
-                        let td = document.createElement('TD');
-                        td.width = '150';
-                        td.appendChild(document.createTextNode(site_names[istation] ));
-                        tr.appendChild(td);
-
-                        for (let jconstit = 0; jconstit < phaseName.length; jconstit++) {
-                            let td = document.createElement('TD');
-                            td.width = '50';
-                            td.appendChild(document.createTextNode(coefs[istation][jconstit] ));
-                            tr.appendChild(td);
-                        }
-                    }
-
-
-                    table.style.fontFamily = "Courier";
-                    table.style.fontSize = "smaller";
-                    myTableDiv.appendChild(table);
-                }
-                addTable()
-            </script>
-
-
-            <!-- Place the user defined input box and button -->
-            <div>
-                <label for="userCoefsInput">Enter user defined amplitudes (comma-separated):</label>
-                <input type="text" id="userCoefsInput" placeholder="e.g., 2.0, 1.5, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0">
-                <button onclick="updateUserCoefs()">Update Table</button>
-            </div>
-
-            <p>ADD Words about origins of constituents (semi-diurnal / diurnal / shallow-water)</p>
-            <p>ADD Words highlighting key features of Liverpool (large semi-diurnal), Southampton (double highs)</p>
-
-            Adapted from a <a href="https://www.ams.org/publicoutreach/feature-column/fcarc-tidesiii3">Feature column
-            from the American Mathematical Society</a> on ocean tides.
-            Java originally contributed by Bill Casselman of the University of British Columbia.
-            Adaptions: modified the presentation (units, constituents, locations, direction of time) and user defined input (JPolton, National Oceanography Centre).
-
+    <div class="live-readout-wrapper">
+        <div class="live-readout">
+            📅 Date: <span id="liveDate">12 Jun 2026</span> &nbsp;|&nbsp; 
+            🕒 Time: <span id="liveTime">00:00</span> &nbsp;|&nbsp; 
+            🌊 Height: <span id="liveHeight">0.00 m</span>
         </div>
     </div>
+
+    <div class="canvas-container">
+        <div class="canvas-scaler">
+            <canvas height="560" id="myCanvas" width="900"></canvas>
+        </div>
+
+        <div class="controls">
+            <button id="runpausebutton" onclick="RunPause();">Run</button>
+            <button id="stepbutton" onclick="Step();">Step</button>
+            <button onclick="Reset();">Reset</button>
+            
+            <select id="locationselect" onchange="SetLocation()">
+                <option value="0">Liverpool, UK</option>
+                <option value="1">Southampton, UK</option>
+                <option value="2">User defined</option>
+            </select>
+            
+            <select id="speedselect" onchange="SetSpeed()">
+                <option value="144">Slow Motion</option>
+                <option value="24">Fast Output</option>
+            </select>
+        </div>
+    </div>
+
+    <p style="font-size:14px; color:#475569; text-align:center; margin-top:5px;">
+        Y-Axis gridlines map 1-meter elevation intervals above Chart Datum.
+    </p>
+
+    <div class="table-responsive-wrapper">
+        <div id="myDynamicConstituentTable"></div>
+    </div>
+    
+    <script type="text/javascript">
+        function addTable() {
+            let myTableDiv = document.getElementById("myDynamicConstituentTable");
+            let table = document.createElement('TABLE');
+            let tableBody = document.createElement('TBODY');
+            table.appendChild(tableBody);
+
+            let tr = document.createElement('TR');
+            tableBody.appendChild(tr);
+            let th = document.createElement('TH');
+            th.appendChild(document.createTextNode("Location"));
+            tr.appendChild(th);
+
+            for (let jconstit = 0; jconstit < phaseName.length; jconstit++) {
+                let th = document.createElement('TH');
+                th.appendChild(document.createTextNode(phaseName[jconstit]));
+                tr.appendChild(th);
+            }
+
+            for (let istation = 0; istation < coefs.length; istation++) {
+                let tr = document.createElement('TR');
+                tableBody.appendChild(tr);
+
+                let td = document.createElement('TD');
+                td.style.fontWeight = "600";
+                td.appendChild(document.createTextNode(site_names[istation] ));
+                tr.appendChild(td);
+
+                for (let jconstit = 0; jconstit < phaseName.length; jconstit++) {
+                    let td = document.createElement('TD');
+                    td.appendChild(document.createTextNode(coefs[istation][jconstit].toFixed(3)));
+                    
+                    if (istation === 2) {
+                        td.className = "editable-cell";
+                        td.contentEditable = "true";
+                        td.title = "Tap to change value";
+                        
+                        td.onblur = function() { handleTableEdit(this, jconstit); };
+                        td.onkeydown = function(e) { 
+                            if(e.key === "Enter") { e.preventDefault(); this.blur(); } 
+                        };
+                    }
+                    tr.appendChild(td);
+                }
+            }
+            myTableDiv.appendChild(table);
+        }
+        addTable();
+    </script>
+
+    <h3>Origins of the Selected Constituents</h3>
+    <ul>
+        <li><strong>M<sub>2</sub> (Principal lunar semi-diurnal):</strong> Dominant constituent forced by the Earth-Moon rotation.</li>
+        <li><strong>S<sub>2</sub> (Principal solar semi-diurnal):</strong> Main solar component, interacting to cause spring-neap variations.</li>
+        <li><strong>N<sub>2</sub> (Larger lunar elliptic):</strong> Accounts for the monthly variation in lunar distance.</li>
+        <li><strong>K<sub>2</sub> (Lunisolar semi-diurnal):</strong> Modulates both amplitude and phase to account for the changing declinations of the Moon and the Sun over semi-diurnal speeds.</li>
+        <li><strong>K<sub>1</sub> (Lunisolar diurnal):</strong> Adjusts for the declination tilts over a diurnal cycle.</li>
+        <li><strong>O<sub>1</sub> (Principal lunar diurnal):</strong> Captures the changing north-south path of the lunar orbit.</li>
+        <li><strong>M<sub>4</sub> &amp; M<sub>6</sub> (Shallow water higher harmonics):</strong> Local shallow-water distortions. The strong M<sub>6</sub> over Southampton simulates its unique double high water stand.</li>
+    </ul>
 </div>
 
 </body>
 </html>
-<!--/Footer-->
